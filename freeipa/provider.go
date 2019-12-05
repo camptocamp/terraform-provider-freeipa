@@ -1,4 +1,4 @@
-package rancher
+package freeipa
 
 import (
 	"github.com/hashicorp/terraform/helper/schema"

@@ -1,4 +1,4 @@
-package rancher
+package freeipa
 
 import (
 	"crypto/tls"
