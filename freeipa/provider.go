@@ -36,7 +36,7 @@ func Provider() terraform.ResourceProvider {
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
-			"freeipa_host": resourceFreeIpaHost(),
+			//			"freeipa_host": resourceFreeIpaHost(),
 		},
 
 		DataSourcesMap: map[string]*schema.Resource{},
@@ -60,17 +60,10 @@ func init() {
 }
 
 func providerConfigure(d *schema.ResourceData) (interface{}, error) {
-	config := &Config{
+	return &Config{
 		Host:               d.Get("host").(string),
 		Username:           d.Get("username").(string),
 		Password:           d.Get("password").(string),
-		InsecureSkipVerify: d.Get("insecure").(string),
-	}
-
-	client, err := config.Client()
-	if err != nil {
-		return &Config{}, err
-	}
-
-	return config, nil
+		InsecureSkipVerify: d.Get("insecure").(bool),
+	}, nil
 }
