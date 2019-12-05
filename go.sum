@@ -33,7 +33,6 @@ github.com/agext/levenshtein v1.2.1/go.mod h1:JEDfjyjHDjOF/1e4FlBE/PkbqA9OfWu2ki
 github.com/agext/levenshtein v1.2.2 h1:0S/Yg6LYmFJ5stwQeRp6EeOcCbj7xiqQSdNelsXvaqE=
 github.com/agext/levenshtein v1.2.2/go.mod h1:JEDfjyjHDjOF/1e4FlBE/PkbqA9OfWu2ki2W0IB5558=
 github.com/agl/ed25519 v0.0.0-20150830182803-278e1ec8e8a6/go.mod h1:WPjqKcmVOxf0XSf3YxCJs6N6AOSrOx3obionmG7T0y0=
-github.com/agl/ed25519 v0.0.0-20170116200512-5312a6153412/go.mod h1:WPjqKcmVOxf0XSf3YxCJs6N6AOSrOx3obionmG7T0y0=
 github.com/alecthomas/template v0.0.0-20160405071501-a0175ee3bccc/go.mod h1:LOuyumcjzFXgccqObfd/Ljyb9UuFJ6TxHnclSeseNhc=
 github.com/alecthomas/units v0.0.0-20151022065526-2efee857e7cf/go.mod h1:ybxpYRFXyAe+OPACYpWeL0wqObRcbAqCMya13uyzqw0=
 github.com/aliyun/alibaba-cloud-sdk-go v0.0.0-20190329064014-6e358769c32a/go.mod h1:T9M45xf79ahXVelWoOBmH0y4aC1t5kXO5BxwyakgIGA=
@@ -109,7 +108,6 @@ github.com/golang/protobuf v1.3.1/go.mod h1:6lQm79b+lXiMfvg/cZm0SGofjICqVBUtrP5y
 github.com/golang/protobuf v1.3.2 h1:6nsPYzhq5kReh6QImI3k5qWzO4PEbvbIW2cwSfR/6xs=
 github.com/golang/protobuf v1.3.2/go.mod h1:6lQm79b+lXiMfvg/cZm0SGofjICqVBUtrP5yJMmIC1U=
 github.com/golang/snappy v0.0.0-20180518054509-2e65f85255db/go.mod h1:/XxbfmMg8lxefKM7IXC3fBNl/7bRcc72aCRzEWrmP2Q=
-github.com/golang/snappy v0.0.1/go.mod h1:/XxbfmMg8lxefKM7IXC3fBNl/7bRcc72aCRzEWrmP2Q=
 github.com/google/btree v0.0.0-20180813153112-4030bb1f1f0c/go.mod h1:lNA+9X1NB3Zf8V7Ke586lFgjr2dZNuvo3lPJSGZ5JPQ=
 github.com/google/btree v1.0.0/go.mod h1:lNA+9X1NB3Zf8V7Ke586lFgjr2dZNuvo3lPJSGZ5JPQ=
 github.com/google/go-cmp v0.2.0/go.mod h1:oXzfMopK8JAjlY9xF4vHSVASa0yLyX7SntLO5aqRK0M=
@@ -186,8 +184,6 @@ github.com/hashicorp/terraform v0.12.17 h1:U4gOJWeG1/ICNS4CHSTjFsM7hxOM1t+2GDTq2
 github.com/hashicorp/terraform v0.12.17/go.mod h1:LQR1l9+qbkA0ZKujo+7dk3tSKhYmG5LQjogPW6DZblI=
 github.com/hashicorp/terraform-config-inspect v0.0.0-20190821133035-82a99dc22ef4/go.mod h1:JDmizlhaP5P0rYTTZB0reDMefAiJyfWPEtugV4in1oI=
 github.com/hashicorp/terraform-config-inspect v0.0.0-20191115094559-17f92b0546e8/go.mod h1:p+ivJws3dpqbp1iP84+npOyAmTTOLMgCzrXd3GSdn/A=
-github.com/hashicorp/terraform-plugin-sdk v1.4.0 h1:b1LluARpES0Gq78oF4a9of3eS0iXM5JTwlt604vGvBY=
-github.com/hashicorp/terraform-plugin-sdk v1.4.0/go.mod h1:H5QLx/uhwfxBZ59Bc5SqT19M4i+fYt7LZjHTpbLZiAg=
 github.com/hashicorp/terraform-svchost v0.0.0-20191011084731-65d371908596 h1:hjyO2JsNZUKT1ym+FAdlBEkGPevazYsmVgIMw7dVELg=
 github.com/hashicorp/terraform-svchost v0.0.0-20191011084731-65d371908596/go.mod h1:kNDNcF7sN4DocDLBkQYz73HGKwN1ANB1blq4lIYLYvg=
 github.com/hashicorp/vault v0.10.4/go.mod h1:KfSyffbKxoVyspOdlaGVjIuwLobi07qD1bAbosPMpP0=
@@ -265,7 +261,6 @@ github.com/onsi/ginkgo v1.7.0/go.mod h1:lLunBs/Ym6LB5Z9jYTR76FiuTmxDTDusOGeTQH+W
 github.com/onsi/gomega v1.4.3/go.mod h1:ex+gbHU/CVuBBDIJjb2X0qEXbFg53c61hWP/1CpauHY=
 github.com/packer-community/winrmcp v0.0.0-20180102160824-81144009af58/go.mod h1:f6Izs6JvFTdnRbziASagjZ2vmf55NSIkC/weStxCHqk=
 github.com/pascaldekloe/goe v0.0.0-20180627143212-57f6aae5913c/go.mod h1:lzWF7FIEvWOWxwDKqyGYQf6ZUaNfKdP144TG7ZOy1lc=
-github.com/pierrec/lz4 v2.0.5+incompatible/go.mod h1:pdkljMzZIN41W+lC3N2tnIh5sFi+IEE17M5jbnwPHcY=
 github.com/pkg/browser v0.0.0-20180916011732-0a3d74bf9ce4/go.mod h1:4OwLy04Bl9Ef3GJJCoec+30X3LQs/0/m4HFRt/2LUSA=
 github.com/pkg/errors v0.8.0/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
