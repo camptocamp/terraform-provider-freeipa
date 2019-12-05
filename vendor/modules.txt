@@ -59,10 +59,6 @@ github.com/bgentry/speakeasy
 github.com/blang/semver
 # github.com/fatih/color v1.7.0
 github.com/fatih/color
-# github.com/fiveai/goipa v0.0.0-20171215165737-abe2c8b4ddf5
-github.com/fiveai/goipa
-# github.com/fiveai/terraform-provider-freeipa v0.0.0-20190918133932-f6cec7d1bf5f
-github.com/fiveai/terraform-provider-freeipa/freeipa
 # github.com/golang/protobuf v1.3.1
 github.com/golang/protobuf/proto
 github.com/golang/protobuf/ptypes
@@ -199,9 +195,6 @@ github.com/spf13/afero
 github.com/spf13/afero/mem
 # github.com/tehwalris/go-freeipa v0.0.0-20190705194310-f59f064998b1
 github.com/tehwalris/go-freeipa/freeipa
-# github.com/tustvold/kerby v0.0.0-20171212165806-ca8245542ec8
-github.com/tustvold/kerby/khttp
-github.com/tustvold/kerby
 # github.com/ulikunitz/xz v0.5.5
 github.com/ulikunitz/xz
 github.com/ulikunitz/xz/internal/xlog
@@ -332,5 +325,3 @@ google.golang.org/grpc/credentials/internal
 google.golang.org/grpc/balancer/base
 google.golang.org/grpc/binarylog/grpc_binarylog_v1
 google.golang.org/grpc/internal/syscall
-# gopkg.in/ldap.v2 v2.5.1
-gopkg.in/ldap.v2
