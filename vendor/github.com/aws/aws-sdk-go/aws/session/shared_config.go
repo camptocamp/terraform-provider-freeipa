@@ -22,12 +22,6 @@ const (
 	mfaSerialKey        = `mfa_serial`        // optional
 	roleSessionNameKey  = `role_session_name` // optional
 
-	// CSM options
-	csmEnabledKey  = `csm_enabled`
-	csmHostKey     = `csm_host`
-	csmPortKey     = `csm_port`
-	csmClientIDKey = `csm_client_id`
-
 	// Additional Config fields
 	regionKey = `region`
 
@@ -82,12 +76,6 @@ type sharedConfig struct {
 	//
 	//	endpoint_discovery_enabled = true
 	EnableEndpointDiscovery *bool
-
-	// CSM Options
-	CSMEnabled  *bool
-	CSMHost     string
-	CSMPort     string
-	CSMClientID string
 }
 
 type sharedConfigFile struct {
@@ -263,13 +251,10 @@ func (cfg *sharedConfig) setFromIniFile(profile string, file sharedConfigFile, e
 	}
 
 	// Endpoint discovery
-	updateBoolPtr(&cfg.EnableEndpointDiscovery, section, enableEndpointDiscoveryKey)
-
-	// CSM options
-	updateBoolPtr(&cfg.CSMEnabled, section, csmEnabledKey)
-	updateString(&cfg.CSMHost, section, csmHostKey)
-	updateString(&cfg.CSMPort, section, csmPortKey)
-	updateString(&cfg.CSMClientID, section, csmClientIDKey)
+	if section.Has(enableEndpointDiscoveryKey) {
+		v := section.Bool(enableEndpointDiscoveryKey)
+		cfg.EnableEndpointDiscovery = &v
+	}
 
 	return nil
 }
@@ -361,16 +346,6 @@ func updateString(dst *string, section ini.Section, key string) {
 		return
 	}
 	*dst = section.String(key)
-}
-
-// updateBoolPtr will only update the dst with the value in the section key,
-// key is present in the section.
-func updateBoolPtr(dst **bool, section ini.Section, key string) {
-	if !section.Has(key) {
-		return
-	}
-	*dst = new(bool)
-	**dst = section.Bool(key)
 }
 
 // SharedConfigLoadError is an error for the shared config file failed to load.

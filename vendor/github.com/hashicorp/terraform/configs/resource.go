@@ -3,9 +3,9 @@ package configs
 import (
 	"fmt"
 
-	"github.com/hashicorp/hcl/v2"
-	"github.com/hashicorp/hcl/v2/gohcl"
-	"github.com/hashicorp/hcl/v2/hclsyntax"
+	"github.com/hashicorp/hcl2/gohcl"
+	"github.com/hashicorp/hcl2/hcl"
+	"github.com/hashicorp/hcl2/hcl/hclsyntax"
 
 	"github.com/hashicorp/terraform/addrs"
 )
@@ -76,7 +76,6 @@ func (r *Resource) ProviderConfigAddr() addrs.ProviderConfig {
 }
 
 func decodeResourceBlock(block *hcl.Block) (*Resource, hcl.Diagnostics) {
-	var diags hcl.Diagnostics
 	r := &Resource{
 		Mode:      addrs.ManagedResourceMode,
 		Type:      block.Labels[0],
@@ -86,15 +85,7 @@ func decodeResourceBlock(block *hcl.Block) (*Resource, hcl.Diagnostics) {
 		Managed:   &ManagedResource{},
 	}
 
-	// Produce deprecation messages for any pre-0.12-style
-	// single-interpolation-only expressions. We do this up front here because
-	// then we can also catch instances inside special blocks like "connection",
-	// before PartialContent extracts them.
-	moreDiags := warnForDeprecatedInterpolationsInBody(block.Body)
-	diags = append(diags, moreDiags...)
-
-	content, remain, moreDiags := block.Body.PartialContent(resourceBlockSchema)
-	diags = append(diags, moreDiags...)
+	content, remain, diags := block.Body.PartialContent(resourceBlockSchema)
 	r.Config = remain
 
 	if !hclsyntax.ValidIdentifier(r.Type) {

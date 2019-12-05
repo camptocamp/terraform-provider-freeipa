@@ -175,7 +175,7 @@ const (
 	EachMap  EachMode = 'M'
 )
 
-//go:generate go run golang.org/x/tools/cmd/stringer -type EachMode
+//go:generate stringer -type EachMode
 
 func eachModeForInstanceKey(key addrs.InstanceKey) EachMode {
 	switch key.(type) {

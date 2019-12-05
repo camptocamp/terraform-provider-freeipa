@@ -3,7 +3,7 @@ package terraform
 import (
 	"fmt"
 
-	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl2/hcl"
 	"github.com/hashicorp/terraform/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -19,9 +19,8 @@ func evaluateResourceForEachExpression(expr hcl.Expression, ctx EvalContext) (fo
 		// Attach a diag as we do with count, with the same downsides
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
-			Summary:  "Invalid for_each argument",
+			Summary:  "Invalid forEach argument",
 			Detail:   `The "for_each" value depends on resource attributes that cannot be determined until apply, so Terraform cannot predict how many instances will be created. To work around this, use the -target argument to first apply only the resources that the for_each depends on.`,
-			Subject:  expr.Range().Ptr(),
 		})
 	}
 	return forEachMap, diags
@@ -65,12 +64,6 @@ func evaluateResourceForEachExpressionKnown(expr hcl.Expression, ctx EvalContext
 		return nil, true, diags
 	}
 
-	// If the map is empty ({}), return an empty map, because cty will return nil when representing {} AsValueMap
-	// This also covers an empty set (toset([]))
-	if forEachVal.LengthInt() == 0 {
-		return map[string]cty.Value{}, true, diags
-	}
-
 	if forEachVal.Type().IsSetType() {
 		if forEachVal.Type().ElementType() != cty.String {
 			diags = diags.Append(&hcl.Diagnostic{
@@ -81,14 +74,11 @@ func evaluateResourceForEachExpressionKnown(expr hcl.Expression, ctx EvalContext
 			})
 			return nil, true, diags
 		}
+	}
 
-		// A set may contain unknown values that must be
-		// discovered by checking with IsWhollyKnown (which iterates through the
-		// structure), while for maps in cty, keys can never be unknown or null,
-		// thus the earlier IsKnown check suffices for maps
-		if !forEachVal.IsWhollyKnown() {
-			return map[string]cty.Value{}, false, diags
-		}
+	// If the map is empty ({}), return an empty map, because cty will return nil when representing {} AsValueMap
+	if forEachVal.LengthInt() == 0 {
+		return map[string]cty.Value{}, true, diags
 	}
 
 	return forEachVal.AsValueMap(), true, nil

@@ -3,7 +3,7 @@ package configs
 import (
 	"fmt"
 
-	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl2/hcl"
 )
 
 // Provisioner represents a "provisioner" block when used within a
@@ -118,7 +118,7 @@ type Connection struct {
 // ProvisionerWhen is an enum for valid values for when to run provisioners.
 type ProvisionerWhen int
 
-//go:generate go run golang.org/x/tools/cmd/stringer -type ProvisionerWhen
+//go:generate stringer -type ProvisionerWhen
 
 const (
 	ProvisionerWhenInvalid ProvisionerWhen = iota
@@ -130,7 +130,7 @@ const (
 // for provisioners.
 type ProvisionerOnFailure int
 
-//go:generate go run golang.org/x/tools/cmd/stringer -type ProvisionerOnFailure
+//go:generate stringer -type ProvisionerOnFailure
 
 const (
 	ProvisionerOnFailureInvalid ProvisionerOnFailure = iota
