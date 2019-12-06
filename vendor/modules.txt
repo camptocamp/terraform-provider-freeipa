@@ -193,7 +193,7 @@ github.com/posener/complete/match
 # github.com/spf13/afero v1.2.1
 github.com/spf13/afero
 github.com/spf13/afero/mem
-# github.com/tehwalris/go-freeipa v0.0.0-20190705194310-f59f064998b1
+# github.com/tehwalris/go-freeipa v0.0.0-20191205131509-4409391e6e02
 github.com/tehwalris/go-freeipa/freeipa
 # github.com/ulikunitz/xz v0.5.5
 github.com/ulikunitz/xz

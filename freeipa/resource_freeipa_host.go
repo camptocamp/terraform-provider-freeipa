@@ -57,6 +57,7 @@ func resourceFreeIpaHostCreate(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
+	d.SetId(fqdn)
 	d.Set("randompassword", *res.Result.Randompassword)
 
 	return nil
@@ -86,6 +87,24 @@ func resourceFreeIpaHostRead(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceFreeIpaHostDelete(d *schema.ResourceData, meta interface{}) error {
-	// TBD
+	log.Printf("[INFO] Deleting Host: %s", d.Id())
+	client, err := meta.(*Config).Client()
+	if err != nil {
+		return err
+	}
+
+	fqdn := d.Get("fqdn").(string)
+
+	_, err = client.HostDel(
+		&ipa.HostDelArgs{
+			Fqdn: []string{fqdn},
+		},
+		&ipa.HostDelOptionalArgs{},
+	)
+	if err != nil {
+		return err
+	}
+
+	d.SetId("")
 	return nil
 }
