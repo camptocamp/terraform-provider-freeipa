@@ -35,9 +35,9 @@ Example
 
 ```hcl
 provider freeipa {
-  host = "ipa.example.test"
-  username = "admin"
-  password = "P@S5sw0rd"
+  host = "ipa.example.test"   # or set $FREEIPA_HOST
+  username = "admin"          # or set $FREEIPA_USERNAME
+  password = "P@S5sw0rd"      # or set $FREEIPA_PASSWORD
   insecure = true
 }
 
