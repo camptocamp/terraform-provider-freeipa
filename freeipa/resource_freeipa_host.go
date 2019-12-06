@@ -12,7 +12,7 @@ func resourceFreeIpaHost() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceFreeIpaHostCreate,
 		Read:   resourceFreeIpaHostRead,
-		//		Update: resourceFreeIpaHostUpdate,
+		Update: resourceFreeIpaHostUpdate,
 		Delete: resourceFreeIpaHostDelete,
 		/*
 			Importer: &schema.ResourceImporter{
@@ -30,12 +30,10 @@ func resourceFreeIpaHost() *schema.Resource {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  false,
-				ForceNew: true,
 			},
 			"userpassword": {
 				Type:     schema.TypeString,
 				Optional: true,
-				ForceNew: true,
 			},
 			"randompassword": {
 				Type:     schema.TypeString,
@@ -45,7 +43,6 @@ func resourceFreeIpaHost() *schema.Resource {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  false,
-				ForceNew: true,
 			},
 		},
 	}
@@ -109,6 +106,42 @@ func resourceFreeIpaHostRead(d *schema.ResourceData, meta interface{}) error {
 	)
 	if err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func resourceFreeIpaHostUpdate(d *schema.ResourceData, meta interface{}) error {
+	log.Printf("[INFO] Updating Host: %s", d.Id())
+	client, err := meta.(*Config).Client()
+	if err != nil {
+		return err
+	}
+
+	fqdn := d.Get("fqdn").(string)
+	random := d.Get("random").(bool)
+	userpassword := d.Get("userpassword").(string)
+
+	optArgs := ipa.HostModOptionalArgs{
+		Random: &random,
+	}
+
+	if userpassword != "" {
+		optArgs.Userpassword = &userpassword
+	}
+
+	res, err := client.HostMod(
+		&ipa.HostModArgs{
+			Fqdn: fqdn,
+		},
+		&optArgs,
+	)
+	if err != nil {
+		return err
+	}
+
+	if random {
+		d.Set("randompassword", *res.Result.Randompassword)
 	}
 
 	return nil
