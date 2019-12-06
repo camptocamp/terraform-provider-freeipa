@@ -26,9 +26,26 @@ func resourceFreeIpaHost() *schema.Resource {
 				Required: true,
 				ForceNew: true,
 			},
+			"random": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+				ForceNew: true,
+			},
+			"userpassword": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
 			"randompassword": {
 				Type:     schema.TypeString,
 				Computed: true,
+			},
+			"force": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+				ForceNew: true,
 			},
 		},
 	}
@@ -42,23 +59,34 @@ func resourceFreeIpaHostCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	fqdn := d.Get("fqdn").(string)
-	truue := true
+	random := d.Get("random").(bool)
+	userpassword := d.Get("userpassword").(string)
+	force := d.Get("force").(bool)
+
+	optArgs := ipa.HostAddOptionalArgs{
+		Random: &random,
+		Force:  &force,
+	}
+
+	if userpassword != "" {
+		optArgs.Userpassword = &userpassword
+	}
 
 	res, err := client.HostAdd(
 		&ipa.HostAddArgs{
 			Fqdn: fqdn,
 		},
-		&ipa.HostAddOptionalArgs{
-			Force:  &truue,
-			Random: &truue,
-		},
+		&optArgs,
 	)
 	if err != nil {
 		return err
 	}
 
 	d.SetId(fqdn)
-	d.Set("randompassword", *res.Result.Randompassword)
+
+	if random {
+		d.Set("randompassword", *res.Result.Randompassword)
+	}
 
 	return nil
 }
