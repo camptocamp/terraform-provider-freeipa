@@ -26,6 +26,10 @@ func resourceFreeIpaHost() *schema.Resource {
 				Required: true,
 				ForceNew: true,
 			},
+			"description": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
 			"random": {
 				Type:     schema.TypeBool,
 				Optional: true,
@@ -56,13 +60,15 @@ func resourceFreeIpaHostCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	fqdn := d.Get("fqdn").(string)
+	description := d.Get("description").(string)
 	random := d.Get("random").(bool)
 	userpassword := d.Get("userpassword").(string)
 	force := d.Get("force").(bool)
 
 	optArgs := ipa.HostAddOptionalArgs{
-		Random: &random,
-		Force:  &force,
+		Description: &description,
+		Random:      &random,
+		Force:       &force,
 	}
 
 	if userpassword != "" {
@@ -81,34 +87,12 @@ func resourceFreeIpaHostCreate(d *schema.ResourceData, meta interface{}) error {
 
 	d.SetId(fqdn)
 
-	if random {
+	// randompassword is not returned by HostShow
+	if d.Get("random").(bool) {
 		d.Set("randompassword", *res.Result.Randompassword)
 	}
 
-	return nil
-}
-
-func resourceFreeIpaHostRead(d *schema.ResourceData, meta interface{}) error {
-	log.Printf("[INFO] Refreshing Host: %s", d.Id())
-	client, err := meta.(*Config).Client()
-	if err != nil {
-		return err
-	}
-
-	fqdn := d.Get("fqdn").(string)
-
-	// Only check that we can find the host
-	_, err = client.HostShow(
-		&ipa.HostShowArgs{
-			Fqdn: fqdn,
-		},
-		&ipa.HostShowOptionalArgs{},
-	)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return resourceFreeIpaHostRead(d, meta)
 }
 
 func resourceFreeIpaHostUpdate(d *schema.ResourceData, meta interface{}) error {
@@ -119,11 +103,13 @@ func resourceFreeIpaHostUpdate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	fqdn := d.Get("fqdn").(string)
+	description := d.Get("description").(string)
 	random := d.Get("random").(bool)
 	userpassword := d.Get("userpassword").(string)
 
 	optArgs := ipa.HostModOptionalArgs{
-		Random: &random,
+		Description: &description,
+		Random:      &random,
 	}
 
 	if userpassword != "" {
@@ -140,8 +126,38 @@ func resourceFreeIpaHostUpdate(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	if random {
+	// randompassword is not returned by HostShow
+	if d.Get("random").(bool) {
 		d.Set("randompassword", *res.Result.Randompassword)
+	}
+
+	return resourceFreeIpaHostRead(d, meta)
+}
+
+func resourceFreeIpaHostRead(d *schema.ResourceData, meta interface{}) error {
+	log.Printf("[INFO] Refreshing Host: %s", d.Id())
+	client, err := meta.(*Config).Client()
+	if err != nil {
+		return err
+	}
+
+	fqdn := d.Get("fqdn").(string)
+
+	res, err := client.HostShow(
+		&ipa.HostShowArgs{
+			Fqdn: fqdn,
+		},
+		&ipa.HostShowOptionalArgs{},
+	)
+	if err != nil {
+		return err
+	}
+
+	if res.Result.Description != nil {
+		d.Set("description", *res.Result.Description)
+	}
+	if res.Result.Userpassword != nil {
+		d.Set("userpassword", *res.Result.Userpassword)
 	}
 
 	return nil
