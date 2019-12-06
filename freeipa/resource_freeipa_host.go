@@ -13,7 +13,7 @@ func resourceFreeIpaHost() *schema.Resource {
 		Create: resourceFreeIpaHostCreate,
 		Read:   resourceFreeIpaHostRead,
 		//		Update: resourceFreeIpaHostUpdate,
-		//Delete: resourceFreeIpaHostDelete,
+		Delete: resourceFreeIpaHostDelete,
 		/*
 			Importer: &schema.ResourceImporter{
 				State: resourceFreeIpaHostImport,
@@ -24,10 +24,7 @@ func resourceFreeIpaHost() *schema.Resource {
 			"fqdn": {
 				Type:     schema.TypeString,
 				Required: true,
-			},
-			"description": {
-				Type:     schema.TypeString,
-				Optional: true,
+				ForceNew: true,
 			},
 			"randompassword": {
 				Type:     schema.TypeString,
@@ -45,7 +42,6 @@ func resourceFreeIpaHostCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	fqdn := d.Get("fqdn").(string)
-	//description := d.Get("description").(string)
 	truue := true
 
 	res, err := client.HostAdd(
@@ -86,5 +82,10 @@ func resourceFreeIpaHostRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
+	return nil
+}
+
+func resourceFreeIpaHostDelete(d *schema.ResourceData, meta interface{}) error {
+	// TBD
 	return nil
 }
