@@ -14,11 +14,9 @@ func resourceFreeIpaHost() *schema.Resource {
 		Read:   resourceFreeIpaHostRead,
 		Update: resourceFreeIpaHostUpdate,
 		Delete: resourceFreeIpaHostDelete,
-		/*
-			Importer: &schema.ResourceImporter{
-				State: resourceFreeIpaHostImport,
-			},
-		*/
+		Importer: &schema.ResourceImporter{
+			State: resourceFreeIpaHostImport,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"fqdn": {
@@ -184,4 +182,16 @@ func resourceFreeIpaHostDelete(d *schema.ResourceData, meta interface{}) error {
 
 	d.SetId("")
 	return nil
+}
+
+func resourceFreeIpaHostImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	d.SetId(d.Id())
+	d.Set("fqdn", d.Id())
+
+	err := resourceFreeIpaHostRead(d, meta)
+	if err != nil {
+		return []*schema.ResourceData{}, err
+	}
+
+	return []*schema.ResourceData{d}, nil
 }
