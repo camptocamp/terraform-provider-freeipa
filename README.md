@@ -34,6 +34,24 @@ Example
 ----------------------
 
 ```hcl
+provider freeipa {
+  host = "ipa.example.test"
+  username = "admin"
+  password = "P@S5sw0rd"
+  insecure = true
+}
+
+resource freeipa_host "foo" {
+  fqdn = "foo.example.test"
+  description = "This is my foo host"
+  force = true
+  random = true
+}
+
+resource freeipa_host "bar" {
+  fqdn = "bar.example.test"
+  userpassword = "abcde"
+}
 ```
 
 Usage
