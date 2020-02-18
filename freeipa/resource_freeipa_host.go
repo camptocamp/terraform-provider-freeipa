@@ -9,14 +9,14 @@ import (
 	ipa "github.com/tehwalris/go-freeipa/freeipa"
 )
 
-func resourceFreeIpaHost() *schema.Resource {
+func resourceFreeIPAHost() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceFreeIpaHostCreate,
-		Read:   resourceFreeIpaHostRead,
-		Update: resourceFreeIpaHostUpdate,
-		Delete: resourceFreeIpaHostDelete,
+		Create: resourceFreeIPAHostCreate,
+		Read:   resourceFreeIPAHostRead,
+		Update: resourceFreeIPAHostUpdate,
+		Delete: resourceFreeIPAHostDelete,
 		Importer: &schema.ResourceImporter{
-			State: resourceFreeIpaHostImport,
+			State: resourceFreeIPAHostImport,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -32,59 +32,63 @@ func resourceFreeIpaHost() *schema.Resource {
 			"random": {
 				Type:     schema.TypeBool,
 				Optional: true,
-				Default:  false,
 			},
 			"userpassword": {
 				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"force": {
+				Type:     schema.TypeBool,
 				Optional: true,
 			},
 			"randompassword": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"force": {
-				Type:     schema.TypeBool,
-				Optional: true,
-				Default:  false,
-			},
 		},
 	}
 }
 
-func resourceFreeIpaHostCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceFreeIPAHostCreate(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[INFO][freeipa] Creating Host: %s", d.Id())
+
 	client, err := meta.(*Config).Client()
 	if err != nil {
 		return err
 	}
 
-	fqdn := d.Get("fqdn").(string)
-	description := d.Get("description").(string)
-	random := d.Get("random").(bool)
-	userpassword := d.Get("userpassword").(string)
-	force := d.Get("force").(bool)
-
-	optArgs := ipa.HostAddOptionalArgs{
-		Description: &description,
-		Random:      &random,
-		Force:       &force,
+	args := ipa.HostAddArgs{
+		Fqdn: d.Get("fqdn").(string),
 	}
 
-	if userpassword != "" {
+	optArgs := ipa.HostAddOptionalArgs{}
+
+	if _description, ok := d.GetOkExists("description"); ok {
+		description := _description.(string)
+		optArgs.Description = &description
+	}
+
+	if _random, ok := d.GetOkExists("random"); ok {
+		random := _random.(bool)
+		optArgs.Random = &random
+	}
+
+	if _userpassword, ok := d.GetOkExists("userpassword"); ok {
+		userpassword := _userpassword.(string)
 		optArgs.Userpassword = &userpassword
 	}
 
-	res, err := client.HostAdd(
-		&ipa.HostAddArgs{
-			Fqdn: fqdn,
-		},
-		&optArgs,
-	)
+	if _force, ok := d.GetOkExists("force"); ok {
+		force := _force.(bool)
+		optArgs.Force = &force
+	}
+
+	res, err := client.HostAdd(&args, &optArgs)
 	if err != nil {
 		return err
 	}
 
-	d.SetId(fqdn)
+	d.SetId(args.Fqdn)
 
 	// randompassword is not returned by HostShow
 	if d.Get("random").(bool) {
@@ -97,7 +101,7 @@ func resourceFreeIpaHostCreate(d *schema.ResourceData, meta interface{}) error {
 	// Maybe we should use resource.StateChangeConf instead...
 	sleepDelay := 1 * time.Second
 	for {
-		err := resourceFreeIpaHostRead(d, meta)
+		err := resourceFreeIPAHostRead(d, meta)
 		if err == nil {
 			return nil
 		}
@@ -106,33 +110,36 @@ func resourceFreeIpaHostCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 }
 
-func resourceFreeIpaHostUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceFreeIPAHostUpdate(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[INFO] Updating Host: %s", d.Id())
+
 	client, err := meta.(*Config).Client()
 	if err != nil {
 		return err
 	}
 
-	fqdn := d.Get("fqdn").(string)
-	description := d.Get("description").(string)
-	random := d.Get("random").(bool)
-	userpassword := d.Get("userpassword").(string)
-
-	optArgs := ipa.HostModOptionalArgs{
-		Description: &description,
-		Random:      &random,
+	args := ipa.HostModArgs{
+		Fqdn: d.Get("fqdn").(string),
 	}
 
-	if userpassword != "" {
+	optArgs := ipa.HostModOptionalArgs{}
+
+	if _description, ok := d.GetOkExists("description"); ok {
+		description := _description.(string)
+		optArgs.Description = &description
+	}
+
+	if _random, ok := d.GetOkExists("random"); ok {
+		random := _random.(bool)
+		optArgs.Random = &random
+	}
+
+	if _userpassword, ok := d.GetOkExists("userpassword"); ok {
+		userpassword := _userpassword.(string)
 		optArgs.Userpassword = &userpassword
 	}
 
-	res, err := client.HostMod(
-		&ipa.HostModArgs{
-			Fqdn: fqdn,
-		},
-		&optArgs,
-	)
+	res, err := client.HostMod(&args, &optArgs)
 	if err != nil {
 		return err
 	}
@@ -142,24 +149,24 @@ func resourceFreeIpaHostUpdate(d *schema.ResourceData, meta interface{}) error {
 		d.Set("randompassword", *res.Result.Randompassword)
 	}
 
-	return resourceFreeIpaHostRead(d, meta)
+	return resourceFreeIPAHostRead(d, meta)
 }
 
-func resourceFreeIpaHostRead(d *schema.ResourceData, meta interface{}) error {
+func resourceFreeIPAHostRead(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[INFO] Refreshing Host: %s", d.Id())
+
 	client, err := meta.(*Config).Client()
 	if err != nil {
 		return err
 	}
 
-	fqdn := d.Get("fqdn").(string)
+	args := ipa.HostShowArgs{
+		Fqdn: d.Get("fqdn").(string),
+	}
 
-	res, err := client.HostShow(
-		&ipa.HostShowArgs{
-			Fqdn: fqdn,
-		},
-		&ipa.HostShowOptionalArgs{},
-	)
+	optArgs := ipa.HostShowOptionalArgs{}
+
+	res, err := client.HostShow(&args, &optArgs)
 	if err != nil {
 		return err
 	}
@@ -167,6 +174,7 @@ func resourceFreeIpaHostRead(d *schema.ResourceData, meta interface{}) error {
 	if res.Result.Description != nil {
 		d.Set("description", *res.Result.Description)
 	}
+
 	if res.Result.Userpassword != nil {
 		d.Set("userpassword", *res.Result.Userpassword)
 	}
@@ -174,34 +182,39 @@ func resourceFreeIpaHostRead(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resourceFreeIpaHostDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceFreeIPAHostDelete(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[INFO] Deleting Host: %s", d.Id())
+
 	client, err := meta.(*Config).Client()
 	if err != nil {
 		return err
 	}
 
-	fqdn := d.Get("fqdn").(string)
-
-	_, err = client.HostDel(
-		&ipa.HostDelArgs{
-			Fqdn: []string{fqdn},
+	args := ipa.HostDelArgs{
+		Fqdn: []string{
+			d.Get("fqdn").(string),
 		},
-		&ipa.HostDelOptionalArgs{},
-	)
+	}
+
+	optArgs := ipa.HostDelOptionalArgs{}
+
+	_, err = client.HostDel(&args, &optArgs)
 	if err != nil {
 		return err
 	}
 
 	d.SetId("")
+
 	return nil
 }
 
-func resourceFreeIpaHostImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+func resourceFreeIPAHostImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	log.Printf("[INFO] Importing Host: %s", d.Id())
+
 	d.SetId(d.Id())
 	d.Set("fqdn", d.Id())
 
-	err := resourceFreeIpaHostRead(d, meta)
+	err := resourceFreeIPAHostRead(d, meta)
 	if err != nil {
 		return []*schema.ResourceData{}, err
 	}
