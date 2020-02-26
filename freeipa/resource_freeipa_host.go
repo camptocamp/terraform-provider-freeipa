@@ -2,6 +2,7 @@ package freeipa
 
 import (
 	"log"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 
@@ -90,7 +91,19 @@ func resourceFreeIpaHostCreate(d *schema.ResourceData, meta interface{}) error {
 		d.Set("randompassword", *res.Result.Randompassword)
 	}
 
-	return resourceFreeIpaHostRead(d, meta)
+	// FIXME: When using a LB in front of a FreeIPA cluster, sometime the record
+	// is not replicated on the server where the read is done, so we have to
+	// retry to not have "Error: NotFound (4001)".
+	// Maybe we should use resource.StateChangeConf instead...
+	sleepDelay := 1 * time.Second
+	for {
+		err := resourceFreeIpaHostRead(d, meta)
+		if err == nil {
+			return nil
+		}
+		time.Sleep(sleepDelay)
+		sleepDelay = sleepDelay * 2
+	}
 }
 
 func resourceFreeIpaHostUpdate(d *schema.ResourceData, meta interface{}) error {
