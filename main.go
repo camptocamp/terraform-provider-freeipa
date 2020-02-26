@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/camptocamp/terraform-provider-freeipa/freeipa"
-	"github.com/hashicorp/terraform/plugin"
+	"github.com/hashicorp/terraform-plugin-sdk/plugin"
 )
 
 func main() {
