@@ -47,6 +47,10 @@ func resourceFreeIpaHost() *schema.Resource {
 				Optional: true,
 				Default:  false,
 			},
+      "ip_address": {
+        Type:     schema.TypeString,
+        Optional: true,
+      },
 		},
 	}
 }
@@ -63,6 +67,7 @@ func resourceFreeIpaHostCreate(d *schema.ResourceData, meta interface{}) error {
 	random := d.Get("random").(bool)
 	userpassword := d.Get("userpassword").(string)
 	force := d.Get("force").(bool)
+  ip_address := d.Get("ip_address").(string)
 
 	optArgs := ipa.HostAddOptionalArgs{
 		Description: &description,
@@ -73,6 +78,10 @@ func resourceFreeIpaHostCreate(d *schema.ResourceData, meta interface{}) error {
 	if userpassword != "" {
 		optArgs.Userpassword = &userpassword
 	}
+
+  if ip_address != "" {
+    optArgs.IPAddress = &ip_address
+  }
 
 	res, err := client.HostAdd(
 		&ipa.HostAddArgs{
