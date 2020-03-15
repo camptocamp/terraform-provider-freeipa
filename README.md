@@ -43,6 +43,7 @@ provider freeipa {
 
 resource freeipa_host "foo" {
   fqdn = "foo.example.test"
+  ip_address = "10.0.0.1"
   description = "This is my foo host"
   force = true
   random = true
