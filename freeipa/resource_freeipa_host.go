@@ -9,14 +9,14 @@ import (
 	ipa "github.com/tehwalris/go-freeipa/freeipa"
 )
 
-func resourceFreeIpaHost() *schema.Resource {
+func resourceFreeIPAHost() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceFreeIpaHostCreate,
-		Read:   resourceFreeIpaHostRead,
-		Update: resourceFreeIpaHostUpdate,
-		Delete: resourceFreeIpaHostDelete,
+		Create: resourceFreeIPAHostCreate,
+		Read:   resourceFreeIPAHostRead,
+		Update: resourceFreeIPAHostUpdate,
+		Delete: resourceFreeIPAHostDelete,
 		Importer: &schema.ResourceImporter{
-			State: resourceFreeIpaHostImport,
+			State: resourceFreeIPAHostImport,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -51,7 +51,7 @@ func resourceFreeIpaHost() *schema.Resource {
 	}
 }
 
-func resourceFreeIpaHostCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceFreeIPAHostCreate(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[INFO][freeipa] Creating Host: %s", d.Id())
 	client, err := meta.(*Config).Client()
 	if err != nil {
@@ -97,7 +97,7 @@ func resourceFreeIpaHostCreate(d *schema.ResourceData, meta interface{}) error {
 	// Maybe we should use resource.StateChangeConf instead...
 	sleepDelay := 1 * time.Second
 	for {
-		err := resourceFreeIpaHostRead(d, meta)
+		err := resourceFreeIPAHostRead(d, meta)
 		if err == nil {
 			return nil
 		}
@@ -106,7 +106,7 @@ func resourceFreeIpaHostCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 }
 
-func resourceFreeIpaHostUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceFreeIPAHostUpdate(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[INFO] Updating Host: %s", d.Id())
 	client, err := meta.(*Config).Client()
 	if err != nil {
@@ -142,10 +142,10 @@ func resourceFreeIpaHostUpdate(d *schema.ResourceData, meta interface{}) error {
 		d.Set("randompassword", *res.Result.Randompassword)
 	}
 
-	return resourceFreeIpaHostRead(d, meta)
+	return resourceFreeIPAHostRead(d, meta)
 }
 
-func resourceFreeIpaHostRead(d *schema.ResourceData, meta interface{}) error {
+func resourceFreeIPAHostRead(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[INFO] Refreshing Host: %s", d.Id())
 	client, err := meta.(*Config).Client()
 	if err != nil {
@@ -174,7 +174,7 @@ func resourceFreeIpaHostRead(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resourceFreeIpaHostDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceFreeIPAHostDelete(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[INFO] Deleting Host: %s", d.Id())
 	client, err := meta.(*Config).Client()
 	if err != nil {
@@ -197,11 +197,11 @@ func resourceFreeIpaHostDelete(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resourceFreeIpaHostImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+func resourceFreeIPAHostImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 	d.SetId(d.Id())
 	d.Set("fqdn", d.Id())
 
-	err := resourceFreeIpaHostRead(d, meta)
+	err := resourceFreeIPAHostRead(d, meta)
 	if err != nil {
 		return []*schema.ResourceData{}, err
 	}
