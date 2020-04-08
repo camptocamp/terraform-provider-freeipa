@@ -1,6 +1,7 @@
 package freeipa
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
@@ -53,15 +54,15 @@ func resourceFreeIPADNSRecordCreate(d *schema.ResourceData, meta interface{}) er
 		return err
 	}
 
+	idnsname := d.Get("idnsname").(string)
+	dnszoneidnsname := d.Get("dnszoneidnsname")
+
 	args := ipa.DnsrecordAddArgs{
-		Idnsname: d.Get("idnsname").(string),
+		Idnsname: idnsname,
 	}
 
-	optArgs := ipa.DnsrecordAddOptionalArgs{}
-
-	if _dnszoneidnsname, ok := d.GetOkExists("dnszoneidnsname"); ok {
-		dnszoneidnsname := _dnszoneidnsname.(string)
-		optArgs.Dnszoneidnsname = &dnszoneidnsname
+	optArgs := ipa.DnsrecordAddOptionalArgs{
+		Dnszoneidnsname: &dnszoneidnsname,
 	}
 
 	if _dnsttl, ok := d.GetOkExists("dnsttl"); ok {
@@ -84,7 +85,7 @@ func resourceFreeIPADNSRecordCreate(d *schema.ResourceData, meta interface{}) er
 		return err
 	}
 
-	d.SetId(args.Idnsname)
+	d.SetId(fmt.Sprintf("%s.%s", idnsname, dnszoneidnsname))
 
 	return resourceFreeIPADNSRecordRead(d, meta)
 }
@@ -104,7 +105,7 @@ func resourceFreeIPADNSRecordUpdate(d *schema.ResourceData, meta interface{}) er
 	optArgs := ipa.DnsrecordModOptionalArgs{}
 
 	if _dnszoneidnsname, ok := d.GetOkExists("dnszoneidnsname"); ok {
-		dnszoneidnsname := _dnszoneidnsname.(string)
+		dnszoneidnsname := _dnszoneidnsname
 		optArgs.Dnszoneidnsname = &dnszoneidnsname
 	}
 
@@ -146,7 +147,7 @@ func resourceFreeIPADNSRecordRead(d *schema.ResourceData, meta interface{}) erro
 	optArgs := ipa.DnsrecordShowOptionalArgs{}
 
 	if _dnszoneidnsname, ok := d.GetOkExists("dnszoneidnsname"); ok {
-		dnszoneidnsname := _dnszoneidnsname.(string)
+		dnszoneidnsname := _dnszoneidnsname
 		optArgs.Dnszoneidnsname = &dnszoneidnsname
 	}
 
@@ -182,7 +183,12 @@ func resourceFreeIPADNSRecordDelete(d *schema.ResourceData, meta interface{}) er
 		Idnsname: d.Get("idnsname").(string),
 	}
 
-	optArgs := ipa.DnsrecordDelOptionalArgs{}
+	dnszoneidnsname := d.Get("dnszoneidnsname")
+	delAll := true
+	optArgs := ipa.DnsrecordDelOptionalArgs{
+		Dnszoneidnsname: &dnszoneidnsname,
+		DelAll:          &delAll,
+	}
 
 	_, err = client.DnsrecordDel(&args, &optArgs)
 	if err != nil {
