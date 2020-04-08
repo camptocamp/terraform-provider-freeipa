@@ -1,3 +1,9 @@
+## 0.3.1 (April 8, 2020)
+
+BUG FIXES:
+
+* Fix `freeipa_dns_record` resource
+
 ## 0.3.0 (April 8, 2020)
 
 IMPROVEMENTS:
