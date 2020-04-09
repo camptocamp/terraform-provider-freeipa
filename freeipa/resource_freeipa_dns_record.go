@@ -42,6 +42,22 @@ func resourceFreeIPADNSRecord() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
+			"srv_part_priority": {
+				Type:     schema.TypeInt,
+				Optional: true,
+			},
+			"srv_part_weight": {
+				Type:     schema.TypeInt,
+				Optional: true,
+			},
+			"srv_part_port": {
+				Type:     schema.TypeInt,
+				Optional: true,
+			},
+			"srv_part_target": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
 		},
 	}
 }
@@ -78,6 +94,26 @@ func resourceFreeIPADNSRecordCreate(d *schema.ResourceData, meta interface{}) er
 	if _aPartIPAddress, ok := d.GetOkExists("a_part_ip_address"); ok {
 		aPartIPAddress := _aPartIPAddress.(string)
 		optArgs.APartIPAddress = &aPartIPAddress
+	}
+
+	if _aSrvPartPriority, ok := d.GetOkExists("srv_part_priority"); ok {
+		aSrvPartPriority := _aSrvPartPriority.(int)
+		optArgs.SrvPartPriority = &aSrvPartPriority
+	}
+
+	if _aSrvPartWeight, ok := d.GetOkExists("srv_part_weight"); ok {
+		aSrvPartWeight := _aSrvPartWeight.(int)
+		optArgs.SrvPartWeight = &aSrvPartWeight
+	}
+
+	if _aSrvPartPort, ok := d.GetOkExists("srv_part_port"); ok {
+		aSrvPartPort := _aSrvPartPort.(int)
+		optArgs.SrvPartPort = &aSrvPartPort
+	}
+
+	if _aSrvPartTarget, ok := d.GetOkExists("srv_part_target"); ok {
+		aSrvPartTarget := _aSrvPartTarget
+		optArgs.SrvPartTarget = &aSrvPartTarget
 	}
 
 	_, err = client.DnsrecordAdd(&args, &optArgs)
@@ -124,6 +160,26 @@ func resourceFreeIPADNSRecordUpdate(d *schema.ResourceData, meta interface{}) er
 		optArgs.APartIPAddress = &aPartIPAddress
 	}
 
+	if _aSrvPartPriority, ok := d.GetOkExists("srv_part_priority"); ok {
+		aSrvPartPriority := _aSrvPartPriority.(int)
+		optArgs.SrvPartPriority = &aSrvPartPriority
+	}
+
+	if _aSrvPartWeight, ok := d.GetOkExists("srv_part_weight"); ok {
+		aSrvPartWeight := _aSrvPartWeight.(int)
+		optArgs.SrvPartWeight = &aSrvPartWeight
+	}
+
+	if _aSrvPartPort, ok := d.GetOkExists("srv_part_port"); ok {
+		aSrvPartPort := _aSrvPartPort.(int)
+		optArgs.SrvPartPort = &aSrvPartPort
+	}
+
+	if _aSrvPartTarget, ok := d.GetOkExists("srv_part_target"); ok {
+		aSrvPartTarget := _aSrvPartTarget
+		optArgs.SrvPartTarget = &aSrvPartTarget
+	}
+
 	_, err = client.DnsrecordMod(&args, &optArgs)
 	if err != nil {
 		return err
@@ -166,6 +222,22 @@ func resourceFreeIPADNSRecordRead(d *schema.ResourceData, meta interface{}) erro
 
 	if res.Result.APartIPAddress != nil {
 		d.Set("a_part_ip_address", *res.Result.APartIPAddress)
+	}
+
+	if res.Result.SrvPartPriority != nil {
+		d.Set("srv_part_priority", *res.Result.SrvPartPriority)
+	}
+
+	if res.Result.SrvPartWeight != nil {
+		d.Set("srv_part_weight", *res.Result.SrvPartWeight)
+	}
+
+	if res.Result.SrvPartPort != nil {
+		d.Set("srv_part_port", *res.Result.SrvPartPort)
+	}
+
+	if res.Result.SrvPartTarget != nil {
+		d.Set("srv_part_target", *res.Result.SrvPartTarget)
 	}
 
 	return nil
