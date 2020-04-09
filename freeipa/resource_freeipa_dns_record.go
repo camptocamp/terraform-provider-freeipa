@@ -38,6 +38,10 @@ func resourceFreeIPADNSRecord() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
+			"arecord": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
 			"a_part_ip_address": {
 				Type:     schema.TypeString,
 				Optional: true,
@@ -89,6 +93,11 @@ func resourceFreeIPADNSRecordCreate(d *schema.ResourceData, meta interface{}) er
 	if _dnsclass, ok := d.GetOkExists("dnsclass"); ok {
 		dnsclass := _dnsclass.(string)
 		optArgs.Dnsclass = &dnsclass
+	}
+
+	if _arecord, ok := d.GetOkExists("arecord"); ok {
+		arecord := []string{_arecord.(string)}
+		optArgs.Arecord = &arecord
 	}
 
 	if _aPartIPAddress, ok := d.GetOkExists("a_part_ip_address"); ok {
@@ -153,6 +162,11 @@ func resourceFreeIPADNSRecordUpdate(d *schema.ResourceData, meta interface{}) er
 	if _dnsclass, ok := d.GetOkExists("dnsclass"); ok {
 		dnsclass := _dnsclass.(string)
 		optArgs.Dnsclass = &dnsclass
+	}
+
+	if _arecord, ok := d.GetOkExists("arecord"); ok {
+		arecord := []string{_arecord.(string)}
+		optArgs.Arecord = &arecord
 	}
 
 	if _aPartIPAddress, ok := d.GetOkExists("a_part_ip_address"); ok {
@@ -220,6 +234,10 @@ func resourceFreeIPADNSRecordRead(d *schema.ResourceData, meta interface{}) erro
 		d.Set("dnsclass", *res.Result.Dnsclass)
 	}
 
+	if res.Result.Arecord != nil {
+		d.Set("arecord", *res.Result.Arecord)
+	}
+
 	if res.Result.APartIPAddress != nil {
 		d.Set("a_part_ip_address", *res.Result.APartIPAddress)
 	}
@@ -257,10 +275,18 @@ func resourceFreeIPADNSRecordDelete(d *schema.ResourceData, meta interface{}) er
 
 	dnszoneidnsname := d.Get("dnszoneidnsname")
 	delAll := true
+
 	optArgs := ipa.DnsrecordDelOptionalArgs{
 		Dnszoneidnsname: &dnszoneidnsname,
-		DelAll:          &delAll,
 	}
+
+	if _arecord, ok := d.GetOkExists("arecord"); ok {
+		arecord := []string{_arecord.(string)}
+		optArgs.Arecord = &arecord
+		delAll = false
+	}
+
+	optArgs.DelAll = &delAll
 
 	_, err = client.DnsrecordDel(&args, &optArgs)
 	if err != nil {
