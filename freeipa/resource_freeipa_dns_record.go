@@ -46,6 +46,10 @@ func resourceFreeIPADNSRecord() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
+			"srvrecord": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
 			"srv_part_priority": {
 				Type:     schema.TypeInt,
 				Optional: true,
@@ -103,6 +107,11 @@ func resourceFreeIPADNSRecordCreate(d *schema.ResourceData, meta interface{}) er
 	if _aPartIPAddress, ok := d.GetOkExists("a_part_ip_address"); ok {
 		aPartIPAddress := _aPartIPAddress.(string)
 		optArgs.APartIPAddress = &aPartIPAddress
+	}
+
+	if _srvrecord, ok := d.GetOkExists("srvrecord"); ok {
+		srvrecord := []string{_srvrecord.(string)}
+		optArgs.Srvrecord = &srvrecord
 	}
 
 	if _aSrvPartPriority, ok := d.GetOkExists("srv_part_priority"); ok {
@@ -174,6 +183,11 @@ func resourceFreeIPADNSRecordUpdate(d *schema.ResourceData, meta interface{}) er
 		optArgs.APartIPAddress = &aPartIPAddress
 	}
 
+	if _srvrecord, ok := d.GetOkExists("srvrecord"); ok {
+		srvrecord := []string{_srvrecord.(string)}
+		optArgs.Srvrecord = &srvrecord
+	}
+
 	if _aSrvPartPriority, ok := d.GetOkExists("srv_part_priority"); ok {
 		aSrvPartPriority := _aSrvPartPriority.(int)
 		optArgs.SrvPartPriority = &aSrvPartPriority
@@ -242,6 +256,10 @@ func resourceFreeIPADNSRecordRead(d *schema.ResourceData, meta interface{}) erro
 		d.Set("a_part_ip_address", *res.Result.APartIPAddress)
 	}
 
+	if res.Result.Srvrecord != nil {
+		d.Set("srvrecord", *res.Result.Srvrecord)
+	}
+
 	if res.Result.SrvPartPriority != nil {
 		d.Set("srv_part_priority", *res.Result.SrvPartPriority)
 	}
@@ -283,6 +301,12 @@ func resourceFreeIPADNSRecordDelete(d *schema.ResourceData, meta interface{}) er
 	if _arecord, ok := d.GetOkExists("arecord"); ok {
 		arecord := []string{_arecord.(string)}
 		optArgs.Arecord = &arecord
+		delAll = false
+	}
+
+	if _srvrecord, ok := d.GetOkExists("srvrecord"); ok {
+		srvrecord := []string{_srvrecord.(string)}
+		optArgs.Srvrecord = &srvrecord
 		delAll = false
 	}
 
