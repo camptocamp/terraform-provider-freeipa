@@ -1,3 +1,13 @@
+## 0.4.0 (April 9, 2020)
+
+IMPROVEMENTS:
+
+* resource/freeipa_dns_record: Add `arecord`, `srvrecord`, `srv_part_priority`, `srv_part_weight`, `srv_part_port` and `srv_part_target` attributes
+
+BUG FIXES:
+
+* Fix multi-valued records when using `arecord` or `srvrecord`
+
 ## 0.3.1 (April 8, 2020)
 
 BUG FIXES:
