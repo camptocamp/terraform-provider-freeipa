@@ -30,39 +30,22 @@ func resourceFreeIPADNSRecord() *schema.Resource {
 				Required: true,
 				ForceNew: true,
 			},
+			"type": {
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
+			},
+			"records": {
+				Type:     schema.TypeSet,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Required: true,
+				// Set:      schema.HashString,
+			},
 			"dnsttl": {
 				Type:     schema.TypeInt,
 				Optional: true,
 			},
 			"dnsclass": {
-				Type:     schema.TypeString,
-				Optional: true,
-			},
-			"arecord": {
-				Type:     schema.TypeString,
-				Optional: true,
-			},
-			"a_part_ip_address": {
-				Type:     schema.TypeString,
-				Optional: true,
-			},
-			"srvrecord": {
-				Type:     schema.TypeString,
-				Optional: true,
-			},
-			"srv_part_priority": {
-				Type:     schema.TypeInt,
-				Optional: true,
-			},
-			"srv_part_weight": {
-				Type:     schema.TypeInt,
-				Optional: true,
-			},
-			"srv_part_port": {
-				Type:     schema.TypeInt,
-				Optional: true,
-			},
-			"srv_part_target": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
@@ -89,6 +72,19 @@ func resourceFreeIPADNSRecordCreate(d *schema.ResourceData, meta interface{}) er
 		Dnszoneidnsname: &dnszoneidnsname,
 	}
 
+	_type := d.Get("type")
+	_records := d.Get("records").(*schema.Set).List()
+	records := make([]string, len(_records))
+	for i, d := range _records {
+		records[i] = d.(string)
+	}
+	switch _type {
+	case "A":
+		optArgs.Arecord = &records
+	case "SRV":
+		optArgs.Srvrecord = &records
+	}
+
 	if _dnsttl, ok := d.GetOkExists("dnsttl"); ok {
 		dnsttl := _dnsttl.(int)
 		optArgs.Dnsttl = &dnsttl
@@ -99,46 +95,12 @@ func resourceFreeIPADNSRecordCreate(d *schema.ResourceData, meta interface{}) er
 		optArgs.Dnsclass = &dnsclass
 	}
 
-	if _arecord, ok := d.GetOkExists("arecord"); ok {
-		arecord := []string{_arecord.(string)}
-		optArgs.Arecord = &arecord
-	}
-
-	if _aPartIPAddress, ok := d.GetOkExists("a_part_ip_address"); ok {
-		aPartIPAddress := _aPartIPAddress.(string)
-		optArgs.APartIPAddress = &aPartIPAddress
-	}
-
-	if _srvrecord, ok := d.GetOkExists("srvrecord"); ok {
-		srvrecord := []string{_srvrecord.(string)}
-		optArgs.Srvrecord = &srvrecord
-	}
-
-	if _aSrvPartPriority, ok := d.GetOkExists("srv_part_priority"); ok {
-		aSrvPartPriority := _aSrvPartPriority.(int)
-		optArgs.SrvPartPriority = &aSrvPartPriority
-	}
-
-	if _aSrvPartWeight, ok := d.GetOkExists("srv_part_weight"); ok {
-		aSrvPartWeight := _aSrvPartWeight.(int)
-		optArgs.SrvPartWeight = &aSrvPartWeight
-	}
-
-	if _aSrvPartPort, ok := d.GetOkExists("srv_part_port"); ok {
-		aSrvPartPort := _aSrvPartPort.(int)
-		optArgs.SrvPartPort = &aSrvPartPort
-	}
-
-	if _aSrvPartTarget, ok := d.GetOkExists("srv_part_target"); ok {
-		aSrvPartTarget := _aSrvPartTarget
-		optArgs.SrvPartTarget = &aSrvPartTarget
-	}
-
 	_, err = client.DnsrecordAdd(&args, &optArgs)
 	if err != nil {
 		return err
 	}
 
+	// TODO: use aws_route53_records' way to generate ID
 	d.SetId(fmt.Sprintf("%s.%s", idnsname, dnszoneidnsname))
 
 	return resourceFreeIPADNSRecordRead(d, meta)
@@ -156,11 +118,22 @@ func resourceFreeIPADNSRecordUpdate(d *schema.ResourceData, meta interface{}) er
 		Idnsname: d.Get("idnsname").(string),
 	}
 
-	optArgs := ipa.DnsrecordModOptionalArgs{}
+	dnszoneidnsname := d.Get("dnszoneidnsname")
+	optArgs := ipa.DnsrecordModOptionalArgs{
+		Dnszoneidnsname: &dnszoneidnsname,
+	}
 
-	if _dnszoneidnsname, ok := d.GetOkExists("dnszoneidnsname"); ok {
-		dnszoneidnsname := _dnszoneidnsname
-		optArgs.Dnszoneidnsname = &dnszoneidnsname
+	_type := d.Get("type")
+	_records := d.Get("records").(*schema.Set).List()
+	records := make([]string, len(_records))
+	for i, d := range _records {
+		records[i] = d.(string)
+	}
+	switch _type {
+	case "A":
+		optArgs.Arecord = &records
+	case "SRV":
+		optArgs.Srvrecord = &records
 	}
 
 	if _dnsttl, ok := d.GetOkExists("dnsttl"); ok {
@@ -171,41 +144,6 @@ func resourceFreeIPADNSRecordUpdate(d *schema.ResourceData, meta interface{}) er
 	if _dnsclass, ok := d.GetOkExists("dnsclass"); ok {
 		dnsclass := _dnsclass.(string)
 		optArgs.Dnsclass = &dnsclass
-	}
-
-	if _arecord, ok := d.GetOkExists("arecord"); ok {
-		arecord := []string{_arecord.(string)}
-		optArgs.Arecord = &arecord
-	}
-
-	if _aPartIPAddress, ok := d.GetOkExists("a_part_ip_address"); ok {
-		aPartIPAddress := _aPartIPAddress.(string)
-		optArgs.APartIPAddress = &aPartIPAddress
-	}
-
-	if _srvrecord, ok := d.GetOkExists("srvrecord"); ok {
-		srvrecord := []string{_srvrecord.(string)}
-		optArgs.Srvrecord = &srvrecord
-	}
-
-	if _aSrvPartPriority, ok := d.GetOkExists("srv_part_priority"); ok {
-		aSrvPartPriority := _aSrvPartPriority.(int)
-		optArgs.SrvPartPriority = &aSrvPartPriority
-	}
-
-	if _aSrvPartWeight, ok := d.GetOkExists("srv_part_weight"); ok {
-		aSrvPartWeight := _aSrvPartWeight.(int)
-		optArgs.SrvPartWeight = &aSrvPartWeight
-	}
-
-	if _aSrvPartPort, ok := d.GetOkExists("srv_part_port"); ok {
-		aSrvPartPort := _aSrvPartPort.(int)
-		optArgs.SrvPartPort = &aSrvPartPort
-	}
-
-	if _aSrvPartTarget, ok := d.GetOkExists("srv_part_target"); ok {
-		aSrvPartTarget := _aSrvPartTarget
-		optArgs.SrvPartTarget = &aSrvPartTarget
 	}
 
 	_, err = client.DnsrecordMod(&args, &optArgs)
@@ -228,16 +166,24 @@ func resourceFreeIPADNSRecordRead(d *schema.ResourceData, meta interface{}) erro
 		Idnsname: d.Get("idnsname").(string),
 	}
 
-	optArgs := ipa.DnsrecordShowOptionalArgs{}
-
-	if _dnszoneidnsname, ok := d.GetOkExists("dnszoneidnsname"); ok {
-		dnszoneidnsname := _dnszoneidnsname
-		optArgs.Dnszoneidnsname = &dnszoneidnsname
+	dnszoneidnsname := d.Get("dnszoneidnsname")
+	all := true
+	optArgs := ipa.DnsrecordShowOptionalArgs{
+		Dnszoneidnsname: &dnszoneidnsname,
+		All:             &all,
 	}
 
 	res, err := client.DnsrecordShow(&args, &optArgs)
 	if err != nil {
 		return err
+	}
+
+	if res.Result.Arecord != nil {
+		d.Set("records", *res.Result.Arecord)
+	}
+
+	if res.Result.Srvrecord != nil {
+		d.Set("records", *res.Result.Srvrecord)
 	}
 
 	if res.Result.Dnsttl != nil {
@@ -246,34 +192,6 @@ func resourceFreeIPADNSRecordRead(d *schema.ResourceData, meta interface{}) erro
 
 	if res.Result.Dnsclass != nil {
 		d.Set("dnsclass", *res.Result.Dnsclass)
-	}
-
-	if res.Result.Arecord != nil {
-		d.Set("arecord", *res.Result.Arecord)
-	}
-
-	if res.Result.APartIPAddress != nil {
-		d.Set("a_part_ip_address", *res.Result.APartIPAddress)
-	}
-
-	if res.Result.Srvrecord != nil {
-		d.Set("srvrecord", *res.Result.Srvrecord)
-	}
-
-	if res.Result.SrvPartPriority != nil {
-		d.Set("srv_part_priority", *res.Result.SrvPartPriority)
-	}
-
-	if res.Result.SrvPartWeight != nil {
-		d.Set("srv_part_weight", *res.Result.SrvPartWeight)
-	}
-
-	if res.Result.SrvPartPort != nil {
-		d.Set("srv_part_port", *res.Result.SrvPartPort)
-	}
-
-	if res.Result.SrvPartTarget != nil {
-		d.Set("srv_part_target", *res.Result.SrvPartTarget)
 	}
 
 	return nil
@@ -292,25 +210,22 @@ func resourceFreeIPADNSRecordDelete(d *schema.ResourceData, meta interface{}) er
 	}
 
 	dnszoneidnsname := d.Get("dnszoneidnsname")
-	delAll := true
-
 	optArgs := ipa.DnsrecordDelOptionalArgs{
 		Dnszoneidnsname: &dnszoneidnsname,
 	}
 
-	if _arecord, ok := d.GetOkExists("arecord"); ok {
-		arecord := []string{_arecord.(string)}
-		optArgs.Arecord = &arecord
-		delAll = false
+	_type := d.Get("type")
+	_records := d.Get("records").(*schema.Set).List()
+	records := make([]string, len(_records))
+	for i, d := range _records {
+		records[i] = d.(string)
 	}
-
-	if _srvrecord, ok := d.GetOkExists("srvrecord"); ok {
-		srvrecord := []string{_srvrecord.(string)}
-		optArgs.Srvrecord = &srvrecord
-		delAll = false
+	switch _type {
+	case "A":
+		optArgs.Arecord = &records
+	case "SRV":
+		optArgs.Srvrecord = &records
 	}
-
-	optArgs.DelAll = &delAll
 
 	_, err = client.DnsrecordDel(&args, &optArgs)
 	if err != nil {
