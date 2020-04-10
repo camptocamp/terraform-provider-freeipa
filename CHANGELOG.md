@@ -1,3 +1,14 @@
+## 0.5.0 (April 10, 2020)
+
+BREAKING CHANGES:
+
+* resource/freeipa_dns_record: Add `type` and `records` arguments and remove `arecord`, `a_part_ip_address`, `srvrecord`, `srv_part_priority`, `srv_part_weight`, `srv_part_port` and `srv_part_target` arguments
+
+BUG FIXES:
+
+* resource/freeipa_dns_record: DNS records with multiple values where not always properly created.
+* resource/freeipa_dns_record: DNS records with multiple values where not always properly deleted.
+
 ## 0.4.0 (April 9, 2020)
 
 IMPROVEMENTS:
