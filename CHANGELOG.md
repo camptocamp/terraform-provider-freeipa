@@ -1,3 +1,7 @@
+## 0.6.0 (July 24, 2020)
+
+* Release on Terraform registry
+
 ## 0.5.0 (April 10, 2020)
 
 BREAKING CHANGES:
