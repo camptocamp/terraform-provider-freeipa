@@ -1,5 +1,11 @@
 FreeIPA Terraform Provider
 ==========================
+
+[![Terraform Registry Version](https://img.shields.io/badge/dynamic/json?color=blue&label=registry&query=%24.version&url=https%3A%2F%2Fregistry.terraform.io%2Fv1%2Fproviders%2Fcamptocamp%2Ffreeipa)](https://registry.terraform.io/providers/camptocamp/freeipa)
+[![Go Report Card](https://goreportcard.com/badge/github.com/camptocamp/terraform-provider-freeipa)](https://goreportcard.com/report/github.com/camptocamp/terraform-provider-freeipa)
+[![Build Status](https://travis-ci.org/camptocamp/terraform-provider-freeipa.svg?branch=master)](https://travis-ci.org/camptocamp/terraform-provider-freeipa)
+[![By Camptocamp](https://img.shields.io/badge/by-camptocamp-fb7047.svg)](http://www.camptocamp.com)
+
 This provider adds integration between Terraform and FreeIPA.
 
 Requirements
