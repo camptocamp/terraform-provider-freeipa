@@ -81,8 +81,22 @@ func resourceFreeIPADNSRecordCreate(d *schema.ResourceData, meta interface{}) er
 	switch _type {
 	case "A":
 		optArgs.Arecord = &records
+	case "AAAA":
+		optArgs.Aaaarecord = &records
+	case "CNAME":
+		optArgs.Cnamerecord = &records
+	case "MX":
+		optArgs.Mxrecord = &records
+	case "NS":
+		optArgs.Nsrecord = &records
+	case "PTR":
+		optArgs.Ptrrecord = &records
 	case "SRV":
 		optArgs.Srvrecord = &records
+	case "TXT":
+		optArgs.Ptrrecord = &records
+	case "SSHFP":
+		optArgs.Sshfprecord = &records
 	}
 
 	if _dnsttl, ok := d.GetOkExists("dnsttl"); ok {
@@ -132,8 +146,22 @@ func resourceFreeIPADNSRecordUpdate(d *schema.ResourceData, meta interface{}) er
 	switch _type {
 	case "A":
 		optArgs.Arecord = &records
+	case "AAAA":
+		optArgs.Aaaarecord = &records
+	case "CNAME":
+		optArgs.Cnamerecord = &records
+	case "MX":
+		optArgs.Mxrecord = &records
+	case "NS":
+		optArgs.Nsrecord = &records
+	case "PTR":
+		optArgs.Ptrrecord = &records
 	case "SRV":
 		optArgs.Srvrecord = &records
+	case "TXT":
+		optArgs.Ptrrecord = &records
+	case "SSHFP":
+		optArgs.Sshfprecord = &records
 	}
 
 	if _dnsttl, ok := d.GetOkExists("dnsttl"); ok {
@@ -223,8 +251,22 @@ func resourceFreeIPADNSRecordDelete(d *schema.ResourceData, meta interface{}) er
 	switch _type {
 	case "A":
 		optArgs.Arecord = &records
+	case "AAAA":
+		optArgs.Aaaarecord = &records
+	case "CNAME":
+		optArgs.Cnamerecord = &records
+	case "MX":
+		optArgs.Mxrecord = &records
+	case "NS":
+		optArgs.Nsrecord = &records
+	case "PTR":
+		optArgs.Ptrrecord = &records
 	case "SRV":
 		optArgs.Srvrecord = &records
+	case "TXT":
+		optArgs.Ptrrecord = &records
+	case "SSHFP":
+		optArgs.Sshfprecord = &records
 	}
 
 	_, err = client.DnsrecordDel(&args, &optArgs)
