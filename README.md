@@ -63,3 +63,12 @@ resource freeipa_host "bar" {
 Usage
 ----------------------
 
+
+Import
+------
+
+DNS records can be imported using the record name and the zone name from <record_name>/<zone_name>
+
+```
+$ terraform import freeipa_dns_record.foo foo/example.tld.
+```
