@@ -94,7 +94,7 @@ func resourceFreeIPADNSRecordCreate(d *schema.ResourceData, meta interface{}) er
 	case "SRV":
 		optArgs.Srvrecord = &records
 	case "TXT":
-		optArgs.Ptrrecord = &records
+		optArgs.Txtrecord = &records
 	case "SSHFP":
 		optArgs.Sshfprecord = &records
 	}
@@ -159,7 +159,7 @@ func resourceFreeIPADNSRecordUpdate(d *schema.ResourceData, meta interface{}) er
 	case "SRV":
 		optArgs.Srvrecord = &records
 	case "TXT":
-		optArgs.Ptrrecord = &records
+		optArgs.Txtrecord = &records
 	case "SSHFP":
 		optArgs.Sshfprecord = &records
 	}
