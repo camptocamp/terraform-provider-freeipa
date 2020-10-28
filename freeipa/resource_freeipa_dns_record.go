@@ -76,15 +76,6 @@ func resourceFreeIPADNSRecordCreate(d *schema.ResourceData, meta interface{}) er
 
 	optArgs := ipa.DnsrecordAddOptionalArgs{
 		Dnszoneidnsname: &dnszoneidnsname,
-		Arecord:         &[]string{},
-		Aaaarecord:      &[]string{},
-		Cnamerecord:     &[]string{},
-		Mxrecord:        &[]string{},
-		Nsrecord:        &[]string{},
-		Ptrrecord:       &[]string{},
-		Srvrecord:       &[]string{},
-		Txtrecord:       &[]string{},
-		Sshfprecord:     &[]string{},
 	}
 
 	records := d.Get("record").(*schema.Set)
@@ -96,22 +87,49 @@ func resourceFreeIPADNSRecordCreate(d *schema.ResourceData, meta interface{}) er
 
 		switch _type {
 		case "A":
+			if optArgs.Arecord == nil {
+				optArgs.Arecord = &[]string{}
+			}
 			*optArgs.Arecord = append(*optArgs.Arecord, _value)
 		case "AAAA":
+			if optArgs.Aaaarecord == nil {
+				optArgs.Aaaarecord = &[]string{}
+			}
 			*optArgs.Aaaarecord = append(*optArgs.Aaaarecord, _value)
 		case "CNAME":
+			if optArgs.Cnamerecord == nil {
+				optArgs.Cnamerecord = &[]string{}
+			}
 			*optArgs.Cnamerecord = append(*optArgs.Cnamerecord, _value)
 		case "MX":
+			if optArgs.Mxrecord == nil {
+				optArgs.Mxrecord = &[]string{}
+			}
 			*optArgs.Mxrecord = append(*optArgs.Mxrecord, _value)
 		case "NS":
+			if optArgs.Nsrecord == nil {
+				optArgs.Nsrecord = &[]string{}
+			}
 			*optArgs.Nsrecord = append(*optArgs.Nsrecord, _value)
 		case "PTR":
+			if optArgs.Ptrrecord == nil {
+				optArgs.Ptrrecord = &[]string{}
+			}
 			*optArgs.Ptrrecord = append(*optArgs.Ptrrecord, _value)
 		case "SRV":
+			if optArgs.Srvrecord == nil {
+				optArgs.Srvrecord = &[]string{}
+			}
 			*optArgs.Srvrecord = append(*optArgs.Srvrecord, _value)
 		case "TXT":
+			if optArgs.Txtrecord == nil {
+				optArgs.Txtrecord = &[]string{}
+			}
 			*optArgs.Txtrecord = append(*optArgs.Txtrecord, _value)
 		case "SSHFP":
+			if optArgs.Sshfprecord == nil {
+				optArgs.Sshfprecord = &[]string{}
+			}
 			*optArgs.Sshfprecord = append(*optArgs.Sshfprecord, _value)
 		}
 	}
@@ -152,15 +170,6 @@ func resourceFreeIPADNSRecordUpdate(d *schema.ResourceData, meta interface{}) er
 	dnszoneidnsname := d.Get("dnszoneidnsname")
 	optArgs := ipa.DnsrecordModOptionalArgs{
 		Dnszoneidnsname: &dnszoneidnsname,
-		Arecord:         &[]string{},
-		Aaaarecord:      &[]string{},
-		Cnamerecord:     &[]string{},
-		Mxrecord:        &[]string{},
-		Nsrecord:        &[]string{},
-		Ptrrecord:       &[]string{},
-		Srvrecord:       &[]string{},
-		Txtrecord:       &[]string{},
-		Sshfprecord:     &[]string{},
 	}
 
 	records := d.Get("record").(*schema.Set)
@@ -172,22 +181,49 @@ func resourceFreeIPADNSRecordUpdate(d *schema.ResourceData, meta interface{}) er
 
 		switch _type {
 		case "A":
+			if optArgs.Arecord == nil {
+				optArgs.Arecord = &[]string{}
+			}
 			*optArgs.Arecord = append(*optArgs.Arecord, _value)
 		case "AAAA":
+			if optArgs.Aaaarecord == nil {
+				optArgs.Aaaarecord = &[]string{}
+			}
 			*optArgs.Aaaarecord = append(*optArgs.Aaaarecord, _value)
 		case "CNAME":
+			if optArgs.Cnamerecord == nil {
+				optArgs.Cnamerecord = &[]string{}
+			}
 			*optArgs.Cnamerecord = append(*optArgs.Cnamerecord, _value)
 		case "MX":
+			if optArgs.Mxrecord == nil {
+				optArgs.Mxrecord = &[]string{}
+			}
 			*optArgs.Mxrecord = append(*optArgs.Mxrecord, _value)
 		case "NS":
+			if optArgs.Nsrecord == nil {
+				optArgs.Nsrecord = &[]string{}
+			}
 			*optArgs.Nsrecord = append(*optArgs.Nsrecord, _value)
 		case "PTR":
+			if optArgs.Ptrrecord == nil {
+				optArgs.Ptrrecord = &[]string{}
+			}
 			*optArgs.Ptrrecord = append(*optArgs.Ptrrecord, _value)
 		case "SRV":
+			if optArgs.Srvrecord == nil {
+				optArgs.Srvrecord = &[]string{}
+			}
 			*optArgs.Srvrecord = append(*optArgs.Srvrecord, _value)
 		case "TXT":
+			if optArgs.Txtrecord == nil {
+				optArgs.Txtrecord = &[]string{}
+			}
 			*optArgs.Txtrecord = append(*optArgs.Txtrecord, _value)
 		case "SSHFP":
+			if optArgs.Sshfprecord == nil {
+				optArgs.Sshfprecord = &[]string{}
+			}
 			*optArgs.Sshfprecord = append(*optArgs.Sshfprecord, _value)
 		}
 	}
@@ -345,15 +381,6 @@ func resourceFreeIPADNSRecordDelete(d *schema.ResourceData, meta interface{}) er
 	dnszoneidnsname := d.Get("dnszoneidnsname")
 	optArgs := ipa.DnsrecordDelOptionalArgs{
 		Dnszoneidnsname: &dnszoneidnsname,
-		Arecord:         &[]string{},
-		Aaaarecord:      &[]string{},
-		Cnamerecord:     &[]string{},
-		Mxrecord:        &[]string{},
-		Nsrecord:        &[]string{},
-		Ptrrecord:       &[]string{},
-		Srvrecord:       &[]string{},
-		Txtrecord:       &[]string{},
-		Sshfprecord:     &[]string{},
 	}
 
 	records := d.Get("record").(*schema.Set)
@@ -365,22 +392,49 @@ func resourceFreeIPADNSRecordDelete(d *schema.ResourceData, meta interface{}) er
 
 		switch _type {
 		case "A":
+			if optArgs.Arecord == nil {
+				optArgs.Arecord = &[]string{}
+			}
 			*optArgs.Arecord = append(*optArgs.Arecord, _value)
 		case "AAAA":
+			if optArgs.Aaaarecord == nil {
+				optArgs.Aaaarecord = &[]string{}
+			}
 			*optArgs.Aaaarecord = append(*optArgs.Aaaarecord, _value)
 		case "CNAME":
+			if optArgs.Cnamerecord == nil {
+				optArgs.Cnamerecord = &[]string{}
+			}
 			*optArgs.Cnamerecord = append(*optArgs.Cnamerecord, _value)
 		case "MX":
+			if optArgs.Mxrecord == nil {
+				optArgs.Mxrecord = &[]string{}
+			}
 			*optArgs.Mxrecord = append(*optArgs.Mxrecord, _value)
 		case "NS":
+			if optArgs.Nsrecord == nil {
+				optArgs.Nsrecord = &[]string{}
+			}
 			*optArgs.Nsrecord = append(*optArgs.Nsrecord, _value)
 		case "PTR":
+			if optArgs.Ptrrecord == nil {
+				optArgs.Ptrrecord = &[]string{}
+			}
 			*optArgs.Ptrrecord = append(*optArgs.Ptrrecord, _value)
 		case "SRV":
+			if optArgs.Srvrecord == nil {
+				optArgs.Srvrecord = &[]string{}
+			}
 			*optArgs.Srvrecord = append(*optArgs.Srvrecord, _value)
 		case "TXT":
+			if optArgs.Txtrecord == nil {
+				optArgs.Txtrecord = &[]string{}
+			}
 			*optArgs.Txtrecord = append(*optArgs.Txtrecord, _value)
 		case "SSHFP":
+			if optArgs.Sshfprecord == nil {
+				optArgs.Sshfprecord = &[]string{}
+			}
 			*optArgs.Sshfprecord = append(*optArgs.Sshfprecord, _value)
 		}
 	}
