@@ -58,6 +58,22 @@ resource freeipa_host "bar" {
   fqdn = "bar.example.test"
   userpassword = "abcde"
 }
+
+resource "freeipa_dns_record" "at" {
+  idnsname        = "@"
+  dnszoneidnsname = "example.tld"
+  dnsttl          = 300
+
+  record {
+    type  = "A"
+    value = "10.10.10.10"
+  }
+
+  record {
+    type  = "NS"
+    value = "ns.master-example.tld."
+  }
+}
 ```
 
 Usage
