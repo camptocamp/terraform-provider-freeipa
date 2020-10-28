@@ -206,49 +206,41 @@ func resourceFreeIPADNSRecordRead(d *schema.ResourceData, meta interface{}) erro
 		return err
 	}
 
-	if res.Result.Arecord != nil {
-		d.Set("type", "A")
-		d.Set("records", *res.Result.Arecord)
-	}
+	_type := d.Get("type")
 
-	if res.Result.Aaaarecord != nil {
-		d.Set("type", "AAAA")
-		d.Set("records", *res.Result.Aaaarecord)
-	}
-
-	if res.Result.Cnamerecord != nil {
-		d.Set("type", "CNAME")
-		d.Set("records", *res.Result.Cnamerecord)
-	}
-
-	if res.Result.Mxrecord != nil {
-		d.Set("type", "MX")
-		d.Set("records", *res.Result.Mxrecord)
-	}
-
-	if res.Result.Nsrecord != nil {
-		d.Set("type", "NS")
-		d.Set("records", *res.Result.Nsrecord)
-	}
-
-	if res.Result.Ptrrecord != nil {
-		d.Set("type", "PTR")
-		d.Set("records", *res.Result.Ptrrecord)
-	}
-
-	if res.Result.Srvrecord != nil {
-		d.Set("type", "SRV")
-		d.Set("records", *res.Result.Srvrecord)
-	}
-
-	if res.Result.Txtrecord != nil {
-		d.Set("type", "TXT")
-		d.Set("records", *res.Result.Txtrecord)
-	}
-
-	if res.Result.Sshfprecord != nil {
-		d.Set("type", "SSHFP")
-		d.Set("records", *res.Result.Sshfprecord)
+	switch _type {
+	case "A":
+		if res.Result.Arecord != nil {
+			d.Set("records", *res.Result.Arecord)
+		}
+	case "AAAA":
+		if res.Result.Aaaarecord != nil {
+			d.Set("records", *res.Result.Aaaarecord)
+		}
+	case "MX":
+		if res.Result.Mxrecord != nil {
+			d.Set("records", *res.Result.Mxrecord)
+		}
+	case "NS":
+		if res.Result.Nsrecord != nil {
+			d.Set("records", *res.Result.Nsrecord)
+		}
+	case "PTR":
+		if res.Result.Ptrrecord != nil {
+			d.Set("records", *res.Result.Ptrrecord)
+		}
+	case "SRV":
+		if res.Result.Srvrecord != nil {
+			d.Set("records", *res.Result.Srvrecord)
+		}
+	case "TXT":
+		if res.Result.Txtrecord != nil {
+			d.Set("records", *res.Result.Txtrecord)
+		}
+	case "SSHFP":
+		if res.Result.Sshfprecord != nil {
+			d.Set("records", *res.Result.Sshfprecord)
+		}
 	}
 
 	if res.Result.Dnsttl != nil {
@@ -317,12 +309,13 @@ func resourceFreeIPADNSRecordDelete(d *schema.ResourceData, meta interface{}) er
 }
 
 func resourceFreeIPADNSRecordImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-	idnsname, dnszoneidnsname := splitID(d.Id())
+	idnsname, dnszoneidnsname, _type := splitID(d.Id())
 
 	d.SetId(fmt.Sprintf("%s.%s", idnsname, dnszoneidnsname))
 
 	d.Set("idnsname", idnsname)
 	d.Set("dnszoneidnsname", dnszoneidnsname)
+	d.Set("type", _type)
 
 	log.Printf("[INFO] Importing DNS Record `%s` in zone `%s`.", idnsname, dnszoneidnsname)
 
