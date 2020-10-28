@@ -30,16 +30,22 @@ func resourceFreeIPADNSRecord() *schema.Resource {
 				Required: true,
 				ForceNew: true,
 			},
-			"type": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
-			},
-			"records": {
+			"record": {
 				Type:     schema.TypeSet,
-				Elem:     &schema.Schema{Type: schema.TypeString},
-				Required: true,
-				// Set:      schema.HashString,
+				Optional: true,
+				Computed: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"type": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"value": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+					},
+				},
 			},
 			"dnsttl": {
 				Type:     schema.TypeInt,
@@ -70,33 +76,44 @@ func resourceFreeIPADNSRecordCreate(d *schema.ResourceData, meta interface{}) er
 
 	optArgs := ipa.DnsrecordAddOptionalArgs{
 		Dnszoneidnsname: &dnszoneidnsname,
+		Arecord:         &[]string{},
+		Aaaarecord:      &[]string{},
+		Cnamerecord:     &[]string{},
+		Mxrecord:        &[]string{},
+		Nsrecord:        &[]string{},
+		Ptrrecord:       &[]string{},
+		Srvrecord:       &[]string{},
+		Txtrecord:       &[]string{},
+		Sshfprecord:     &[]string{},
 	}
 
-	_type := d.Get("type")
-	_records := d.Get("records").(*schema.Set).List()
-	records := make([]string, len(_records))
-	for i, d := range _records {
-		records[i] = d.(string)
-	}
-	switch _type {
-	case "A":
-		optArgs.Arecord = &records
-	case "AAAA":
-		optArgs.Aaaarecord = &records
-	case "CNAME":
-		optArgs.Cnamerecord = &records
-	case "MX":
-		optArgs.Mxrecord = &records
-	case "NS":
-		optArgs.Nsrecord = &records
-	case "PTR":
-		optArgs.Ptrrecord = &records
-	case "SRV":
-		optArgs.Srvrecord = &records
-	case "TXT":
-		optArgs.Txtrecord = &records
-	case "SSHFP":
-		optArgs.Sshfprecord = &records
+	records := d.Get("record").(*schema.Set)
+	for _, recordI := range records.List() {
+		record := recordI.(map[string]interface{})
+
+		_type := record["type"]
+		_value := record["value"].(string)
+
+		switch _type {
+		case "A":
+			*optArgs.Arecord = append(*optArgs.Arecord, _value)
+		case "AAAA":
+			*optArgs.Aaaarecord = append(*optArgs.Aaaarecord, _value)
+		case "CNAME":
+			*optArgs.Cnamerecord = append(*optArgs.Cnamerecord, _value)
+		case "MX":
+			*optArgs.Mxrecord = append(*optArgs.Mxrecord, _value)
+		case "NS":
+			*optArgs.Nsrecord = append(*optArgs.Nsrecord, _value)
+		case "PTR":
+			*optArgs.Ptrrecord = append(*optArgs.Ptrrecord, _value)
+		case "SRV":
+			*optArgs.Srvrecord = append(*optArgs.Srvrecord, _value)
+		case "TXT":
+			*optArgs.Txtrecord = append(*optArgs.Txtrecord, _value)
+		case "SSHFP":
+			*optArgs.Sshfprecord = append(*optArgs.Sshfprecord, _value)
+		}
 	}
 
 	if _dnsttl, ok := d.GetOkExists("dnsttl"); ok {
@@ -135,33 +152,44 @@ func resourceFreeIPADNSRecordUpdate(d *schema.ResourceData, meta interface{}) er
 	dnszoneidnsname := d.Get("dnszoneidnsname")
 	optArgs := ipa.DnsrecordModOptionalArgs{
 		Dnszoneidnsname: &dnszoneidnsname,
+		Arecord:         &[]string{},
+		Aaaarecord:      &[]string{},
+		Cnamerecord:     &[]string{},
+		Mxrecord:        &[]string{},
+		Nsrecord:        &[]string{},
+		Ptrrecord:       &[]string{},
+		Srvrecord:       &[]string{},
+		Txtrecord:       &[]string{},
+		Sshfprecord:     &[]string{},
 	}
 
-	_type := d.Get("type")
-	_records := d.Get("records").(*schema.Set).List()
-	records := make([]string, len(_records))
-	for i, d := range _records {
-		records[i] = d.(string)
-	}
-	switch _type {
-	case "A":
-		optArgs.Arecord = &records
-	case "AAAA":
-		optArgs.Aaaarecord = &records
-	case "CNAME":
-		optArgs.Cnamerecord = &records
-	case "MX":
-		optArgs.Mxrecord = &records
-	case "NS":
-		optArgs.Nsrecord = &records
-	case "PTR":
-		optArgs.Ptrrecord = &records
-	case "SRV":
-		optArgs.Srvrecord = &records
-	case "TXT":
-		optArgs.Txtrecord = &records
-	case "SSHFP":
-		optArgs.Sshfprecord = &records
+	records := d.Get("record").(*schema.Set)
+	for _, recordI := range records.List() {
+		record := recordI.(map[string]interface{})
+
+		_type := record["type"]
+		_value := record["value"].(string)
+
+		switch _type {
+		case "A":
+			*optArgs.Arecord = append(*optArgs.Arecord, _value)
+		case "AAAA":
+			*optArgs.Aaaarecord = append(*optArgs.Aaaarecord, _value)
+		case "CNAME":
+			*optArgs.Cnamerecord = append(*optArgs.Cnamerecord, _value)
+		case "MX":
+			*optArgs.Mxrecord = append(*optArgs.Mxrecord, _value)
+		case "NS":
+			*optArgs.Nsrecord = append(*optArgs.Nsrecord, _value)
+		case "PTR":
+			*optArgs.Ptrrecord = append(*optArgs.Ptrrecord, _value)
+		case "SRV":
+			*optArgs.Srvrecord = append(*optArgs.Srvrecord, _value)
+		case "TXT":
+			*optArgs.Txtrecord = append(*optArgs.Txtrecord, _value)
+		case "SSHFP":
+			*optArgs.Sshfprecord = append(*optArgs.Sshfprecord, _value)
+		}
 	}
 
 	if _dnsttl, ok := d.GetOkExists("dnsttl"); ok {
@@ -206,50 +234,90 @@ func resourceFreeIPADNSRecordRead(d *schema.ResourceData, meta interface{}) erro
 		return err
 	}
 
+	var records []map[string]interface{}
+
 	if res.Result.Arecord != nil {
-		d.Set("type", "A")
-		d.Set("records", *res.Result.Arecord)
+		for _, record := range *res.Result.Arecord {
+			records = append(records, map[string]interface{}{
+				"type":  "A",
+				"value": record,
+			})
+		}
 	}
 
 	if res.Result.Aaaarecord != nil {
-		d.Set("type", "AAAA")
-		d.Set("records", *res.Result.Aaaarecord)
+		for _, record := range *res.Result.Aaaarecord {
+			records = append(records, map[string]interface{}{
+				"type":  "AAAA",
+				"value": record,
+			})
+		}
 	}
 
 	if res.Result.Cnamerecord != nil {
-		d.Set("type", "CNAME")
-		d.Set("records", *res.Result.Cnamerecord)
+		for _, record := range *res.Result.Cnamerecord {
+			records = append(records, map[string]interface{}{
+				"type":  "CNAME",
+				"value": record,
+			})
+		}
 	}
 
 	if res.Result.Mxrecord != nil {
-		d.Set("type", "MX")
-		d.Set("records", *res.Result.Mxrecord)
+		for _, record := range *res.Result.Mxrecord {
+			records = append(records, map[string]interface{}{
+				"type":  "MX",
+				"value": record,
+			})
+		}
 	}
 
 	if res.Result.Nsrecord != nil {
-		d.Set("type", "NS")
-		d.Set("records", *res.Result.Nsrecord)
+		for _, record := range *res.Result.Nsrecord {
+			records = append(records, map[string]interface{}{
+				"type":  "NS",
+				"value": record,
+			})
+		}
 	}
 
 	if res.Result.Ptrrecord != nil {
-		d.Set("type", "PTR")
-		d.Set("records", *res.Result.Ptrrecord)
+		for _, record := range *res.Result.Ptrrecord {
+			records = append(records, map[string]interface{}{
+				"type":  "PTR",
+				"value": record,
+			})
+		}
 	}
 
 	if res.Result.Srvrecord != nil {
-		d.Set("type", "SRV")
-		d.Set("records", *res.Result.Srvrecord)
+		for _, record := range *res.Result.Srvrecord {
+			records = append(records, map[string]interface{}{
+				"type":  "SRV",
+				"value": record,
+			})
+		}
 	}
 
 	if res.Result.Txtrecord != nil {
-		d.Set("type", "TXT")
-		d.Set("records", *res.Result.Txtrecord)
+		for _, record := range *res.Result.Txtrecord {
+			records = append(records, map[string]interface{}{
+				"type":  "TXT",
+				"value": record,
+			})
+		}
 	}
 
 	if res.Result.Sshfprecord != nil {
-		d.Set("type", "SSHFP")
-		d.Set("records", *res.Result.Sshfprecord)
+		for _, record := range *res.Result.Sshfprecord {
+			records = append(records, map[string]interface{}{
+				"type":  "SSHFP",
+				"value": record,
+			})
+		}
 	}
+
+	d.Set("record", records)
 
 	if res.Result.Dnsttl != nil {
 		d.Set("dnsttl", *res.Result.Dnsttl)
@@ -277,33 +345,44 @@ func resourceFreeIPADNSRecordDelete(d *schema.ResourceData, meta interface{}) er
 	dnszoneidnsname := d.Get("dnszoneidnsname")
 	optArgs := ipa.DnsrecordDelOptionalArgs{
 		Dnszoneidnsname: &dnszoneidnsname,
+		Arecord:         &[]string{},
+		Aaaarecord:      &[]string{},
+		Cnamerecord:     &[]string{},
+		Mxrecord:        &[]string{},
+		Nsrecord:        &[]string{},
+		Ptrrecord:       &[]string{},
+		Srvrecord:       &[]string{},
+		Txtrecord:       &[]string{},
+		Sshfprecord:     &[]string{},
 	}
 
-	_type := d.Get("type")
-	_records := d.Get("records").(*schema.Set).List()
-	records := make([]string, len(_records))
-	for i, d := range _records {
-		records[i] = d.(string)
-	}
-	switch _type {
-	case "A":
-		optArgs.Arecord = &records
-	case "AAAA":
-		optArgs.Aaaarecord = &records
-	case "CNAME":
-		optArgs.Cnamerecord = &records
-	case "MX":
-		optArgs.Mxrecord = &records
-	case "NS":
-		optArgs.Nsrecord = &records
-	case "PTR":
-		optArgs.Ptrrecord = &records
-	case "SRV":
-		optArgs.Srvrecord = &records
-	case "TXT":
-		optArgs.Ptrrecord = &records
-	case "SSHFP":
-		optArgs.Sshfprecord = &records
+	records := d.Get("record").(*schema.Set)
+	for _, recordI := range records.List() {
+		record := recordI.(map[string]interface{})
+
+		_type := record["type"]
+		_value := record["value"].(string)
+
+		switch _type {
+		case "A":
+			*optArgs.Arecord = append(*optArgs.Arecord, _value)
+		case "AAAA":
+			*optArgs.Aaaarecord = append(*optArgs.Aaaarecord, _value)
+		case "CNAME":
+			*optArgs.Cnamerecord = append(*optArgs.Cnamerecord, _value)
+		case "MX":
+			*optArgs.Mxrecord = append(*optArgs.Mxrecord, _value)
+		case "NS":
+			*optArgs.Nsrecord = append(*optArgs.Nsrecord, _value)
+		case "PTR":
+			*optArgs.Ptrrecord = append(*optArgs.Ptrrecord, _value)
+		case "SRV":
+			*optArgs.Srvrecord = append(*optArgs.Srvrecord, _value)
+		case "TXT":
+			*optArgs.Txtrecord = append(*optArgs.Txtrecord, _value)
+		case "SSHFP":
+			*optArgs.Sshfprecord = append(*optArgs.Sshfprecord, _value)
+		}
 	}
 
 	_, err = client.DnsrecordDel(&args, &optArgs)
