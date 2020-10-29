@@ -67,7 +67,7 @@ Usage
 Import
 ------
 
-DNS records can be imported using the record name and the zone name from <record_name>/<zone_name>/<type>
+DNS records can be imported using the record name and the zone name from <record_name>/<zone_name>/\<type\>
 
 ```
 $ terraform import freeipa_dns_record.foo foo/example.tld./A
