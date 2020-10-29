@@ -1,3 +1,7 @@
+## 0.7.0 (October 29, 2020)
+
+* `freeipa_dns_record`: improve import function
+
 ## 0.6.0 (July 24, 2020)
 
 * Release on Terraform registry
