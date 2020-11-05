@@ -58,6 +58,13 @@ resource freeipa_host "bar" {
   fqdn = "bar.example.test"
   userpassword = "abcde"
 }
+
+resource freeipa_dns_record "foo" {
+  dnszoneidnsname = "your.zone.name."
+  idnsname = "foo"
+  records = ["192.168.10.10"]
+  type = "A"
+}
 ```
 
 Usage
