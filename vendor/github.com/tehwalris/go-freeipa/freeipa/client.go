@@ -73,7 +73,7 @@ func Connect(host string, tspt *http.Transport, user, pw string) (*Client, error
 		pw:   pw,
 	}
 	if e := c.login(); e != nil {
-		return nil, fmt.Errorf("initial login falied: %v", e)
+		return nil, fmt.Errorf("initial login failed: %v", e)
 	}
 	return c, nil
 }
