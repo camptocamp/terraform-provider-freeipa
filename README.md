@@ -65,6 +65,10 @@ resource freeipa_dns_record "foo" {
   records = ["192.168.10.10"]
   type = "A"
 }
+
+resource freeipa_dns_zone "zone" {
+  idnsname = "your.zone.name"
+}
 ```
 
 Usage
