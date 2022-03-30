@@ -13,7 +13,7 @@ func resourceFreeIPADNSZone() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceFreeIPADNSZoneCreate,
 		Read:   resourceFreeIPADNSZoneRead,
-		// Update: resourceFreeIPADNSZoneUpdate,
+		Update: resourceFreeIPADNSZoneUpdate,
 		Delete: resourceFreeIPADNSZoneDelete,
 		Importer: &schema.ResourceImporter{
 			State: resourceFreeIPADNSZoneImport,
@@ -28,7 +28,6 @@ func resourceFreeIPADNSZone() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 				// Optional: true,
-				ForceNew: true,
 			},
 		},
 	}
@@ -59,25 +58,25 @@ func resourceFreeIPADNSZoneCreate(d *schema.ResourceData, meta interface{}) erro
 	return resourceFreeIPADNSZoneRead(d, meta)
 }
 
-// func resourceFreeIPADNSZoneUpdate(d *schema.ResourceData, meta interface{}) error {
-// 	log.Printf("[INFO] Updating DNS Zone: %s", d.Id())
+func resourceFreeIPADNSZoneUpdate(d *schema.ResourceData, meta interface{}) error {
+	log.Printf("[INFO] Updating DNS Zone: %s", d.Id())
 
-// 	client, err := meta.(*Config).Client()
-// 	if err != nil {
-// 		return err
-// 	}
+	client, err := meta.(*Config).Client()
+	if err != nil {
+		return err
+	}
 
-// 	idnsname := d.Get("idnsname")
-// 	optArgs := ipa.DnszoneModOptionalArgs{
-// 		Idnsname: &idnsname,
-// 	}
+	idnsname := d.Get("idnsname")
+	optArgs := ipa.DnszoneModOptionalArgs{
+		Idnsname: &idnsname,
+	}
 
-// 	client.DnszoneMod(
-// 		&ipa.DnszoneModArgs{},
-// 		&optArgs,
-// 	)
-// 	return resourceFreeIPADNSZoneRead(d, meta)
-// }
+	client.DnszoneMod(
+		&ipa.DnszoneModArgs{},
+		&optArgs,
+	)
+	return resourceFreeIPADNSZoneRead(d, meta)
+}
 
 func resourceFreeIPADNSZoneRead(d *schema.ResourceData, meta interface{}) error {
 	client, err := meta.(*Config).Client()
