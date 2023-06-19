@@ -1,3 +1,9 @@
+## 0.8.0 (Unreleased)
+
+IMPROVEMENTS:
+
+* Use Go 1.20
+
 ## 0.7.0 (October 29, 2020)
 
 * `freeipa_dns_record`: improve import function

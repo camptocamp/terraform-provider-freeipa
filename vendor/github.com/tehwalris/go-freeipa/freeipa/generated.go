@@ -10,7 +10,7 @@ import (
   "strconv"
 )
 
-var apiVersion = "2.215"
+var apiVersion = "2.231"
 
 type request struct {
   Method string `json:"method"`
@@ -1950,6 +1950,143 @@ func (t *AutomemberFindResult) String() string {
     return fmt.Sprintf("AutomemberFindResult[failed json.Marshal: %v]", e)
   }
   return fmt.Sprintf("AutomemberFindResult%v", string(b))
+}
+
+/*
+Search for orphan automember rules. The command might need to be run as
+    a privileged user user to get all orphan rules.
+*/
+func (c *Client) AutomemberFindOrphans(
+  criteria string, // A string searched in all relevant object attributes
+  reqArgs *AutomemberFindOrphansArgs,
+  optArgs *AutomemberFindOrphansOptionalArgs, // can be nil
+) (*AutomemberFindOrphansResult, error) {
+  if reqArgs == nil {
+    return nil, fmt.Errorf("reqArgs cannot be nil")
+  }
+  kwp := automemberFindOrphansKwParams{
+    AutomemberFindOrphansArgs: reqArgs,
+    AutomemberFindOrphansOptionalArgs: optArgs,
+    Version: apiVersion,
+  }
+  req := request{
+    Method: "automember_find_orphans",
+    Params: []interface{}{
+      []interface{}{criteria, }, &kwp},
+  }
+  readCloser, e := c.exec(&req)
+  if e != nil {
+    return nil, e
+  }
+  defer readCloser.Close()
+  var res automemberFindOrphansResponse
+	if e := json.NewDecoder(readCloser).Decode(&res); e != nil {
+		return nil, e
+	}
+	if res.Error != nil {
+		return nil, res.Error
+	}
+  if res.Result == nil {
+    return nil, fmt.Errorf("missing result in response")
+  }
+  return res.Result, nil
+}
+
+type AutomemberFindOrphansArgs struct {
+  
+    /*
+Grouping Type
+Grouping to which the rule applies
+    */
+    Type string `json:"type,omitempty"`
+  }
+
+type AutomemberFindOrphansOptionalArgs struct {
+  
+    /*
+Description
+A description of this auto member rule
+    */
+    Description *string `json:"description,omitempty"`
+  
+    /*
+
+Remove orphan automember rules
+    */
+    Remove *bool `json:"remove,omitempty"`
+  
+    /*
+
+Retrieve and print all attributes from the server. Affects command output.
+    */
+    All *bool `json:"all,omitempty"`
+  
+    /*
+
+Print entries as stored on the server. Only affects output format.
+    */
+    Raw *bool `json:"raw,omitempty"`
+  
+    /*
+Primary key only
+Results should contain primary key attribute only ("automember-rule")
+    */
+    PkeyOnly *bool `json:"pkey_only,omitempty"`
+  }
+
+type automemberFindOrphansKwParams struct {
+  *AutomemberFindOrphansArgs
+  *AutomemberFindOrphansOptionalArgs
+
+  /*
+  Automatically set.
+  Used by the server to determine whether to accept the request.
+  */
+  Version string `json:"version"`
+}
+
+type automemberFindOrphansResponse struct {
+	Error  *Error      `json:"error"`
+	Result *AutomemberFindOrphansResult `json:"result"`
+}
+
+type AutomemberFindOrphansResult struct {
+  
+  
+    /*
+User-friendly description of action performed
+    (optional)
+    */
+    Summary *string `json:"summary,omitempty"`
+  
+    /*
+
+    (required)
+    */
+    Result []interface{} `json:"result,omitempty"`
+  
+    /*
+Number of entries returned
+    (required)
+    */
+    Count int `json:"count,omitempty"`
+  
+    /*
+True if not all results were returned
+    (required)
+    */
+    Truncated bool `json:"truncated,omitempty"`
+  }
+
+func (t *AutomemberFindOrphansResult) String() string {
+  if t == nil {
+    return "<nil>"
+  }
+  b, e := json.Marshal(t)
+  if e != nil {
+    return fmt.Sprintf("AutomemberFindOrphansResult[failed json.Marshal: %v]", e)
+  }
+  return fmt.Sprintf("AutomemberFindOrphansResult%v", string(b))
 }
 
 /*
@@ -4683,6 +4820,12 @@ must be part of the schema.
   
     /*
 
+Include certificate chain in output
+    */
+    Chain *bool `json:"chain,omitempty"`
+  
+    /*
+
 Retrieve and print all attributes from the server. Affects command output.
     */
     All *bool `json:"all,omitempty"`
@@ -5503,6 +5646,12 @@ Rights
 Display the access rights of this entry (requires --all). See ipa man page for details.
     */
     Rights *bool `json:"rights,omitempty"`
+  
+    /*
+
+Include certificate chain in output
+    */
+    Chain *bool `json:"chain,omitempty"`
   
     /*
 
@@ -7837,7 +7986,7 @@ type CertFindOptionalArgs struct {
 Certificate
 Base-64 encoded certificate.
     */
-    Certificate *string `json:"certificate,omitempty"`
+    Certificate *interface{} `json:"certificate,omitempty"`
   
     /*
 Issuer
@@ -8231,6 +8380,12 @@ automatically add the principal if it doesn't exist (service principals only)
   
     /*
 
+Include certificate chain in output
+    */
+    Chain *bool `json:"chain,omitempty"`
+  
+    /*
+
 Retrieve and print all attributes from the server. Affects command output.
     */
     All *bool `json:"all,omitempty"`
@@ -8453,6 +8608,12 @@ File to store the certificate in.
   
     /*
 
+Include certificate chain in output
+    */
+    Chain *bool `json:"chain,omitempty"`
+  
+    /*
+
 Retrieve and print all attributes from the server. Affects command output.
     */
     All *bool `json:"all,omitempty"`
@@ -8634,6 +8795,1303 @@ func (t *CertStatusResult) String() string {
     return fmt.Sprintf("CertStatusResult[failed json.Marshal: %v]", e)
   }
   return fmt.Sprintf("CertStatusResult%v", string(b))
+}
+
+/*
+Search for users matching the provided certificate.
+
+    This command relies on SSSD to retrieve the list of matching users and
+    may return cached data. For more information on purging SSSD cache,
+    please refer to sss_cache documentation.
+*/
+func (c *Client) CertmapMatch(
+  reqArgs *CertmapMatchArgs,
+  optArgs *CertmapMatchOptionalArgs, // can be nil
+) (*CertmapMatchResult, error) {
+  if reqArgs == nil {
+    return nil, fmt.Errorf("reqArgs cannot be nil")
+  }
+  kwp := certmapMatchKwParams{
+    CertmapMatchArgs: reqArgs,
+    CertmapMatchOptionalArgs: optArgs,
+    Version: apiVersion,
+  }
+  req := request{
+    Method: "certmap_match",
+    Params: []interface{}{
+      []interface{}{}, &kwp},
+  }
+  readCloser, e := c.exec(&req)
+  if e != nil {
+    return nil, e
+  }
+  defer readCloser.Close()
+  var res certmapMatchResponse
+	if e := json.NewDecoder(readCloser).Decode(&res); e != nil {
+		return nil, e
+	}
+	if res.Error != nil {
+		return nil, res.Error
+	}
+  if res.Result == nil {
+    return nil, fmt.Errorf("missing result in response")
+  }
+  return res.Result, nil
+}
+
+type CertmapMatchArgs struct {
+  
+    /*
+Certificate
+Base-64 encoded user certificate
+    */
+    Certificate interface{} `json:"certificate,omitempty"`
+  }
+
+type CertmapMatchOptionalArgs struct {
+  
+    /*
+
+Retrieve and print all attributes from the server. Affects command output.
+    */
+    All *bool `json:"all,omitempty"`
+  
+    /*
+
+Print entries as stored on the server. Only affects output format.
+    */
+    Raw *bool `json:"raw,omitempty"`
+  }
+
+type certmapMatchKwParams struct {
+  *CertmapMatchArgs
+  *CertmapMatchOptionalArgs
+
+  /*
+  Automatically set.
+  Used by the server to determine whether to accept the request.
+  */
+  Version string `json:"version"`
+}
+
+type certmapMatchResponse struct {
+	Error  *Error      `json:"error"`
+	Result *CertmapMatchResult `json:"result"`
+}
+
+type CertmapMatchResult struct {
+  
+  
+    /*
+User-friendly description of action performed
+    (optional)
+    */
+    Summary *string `json:"summary,omitempty"`
+  
+    /*
+
+    (required)
+    */
+    Result []interface{} `json:"result,omitempty"`
+  
+    /*
+Number of entries returned
+    (required)
+    */
+    Count int `json:"count,omitempty"`
+  
+    /*
+True if not all results were returned
+    (required)
+    */
+    Truncated bool `json:"truncated,omitempty"`
+  }
+
+func (t *CertmapMatchResult) String() string {
+  if t == nil {
+    return "<nil>"
+  }
+  b, e := json.Marshal(t)
+  if e != nil {
+    return fmt.Sprintf("CertmapMatchResult[failed json.Marshal: %v]", e)
+  }
+  return fmt.Sprintf("CertmapMatchResult%v", string(b))
+}
+
+/*
+Modify Certificate Identity Mapping configuration.
+*/
+func (c *Client) CertmapconfigMod(
+  reqArgs *CertmapconfigModArgs,
+  optArgs *CertmapconfigModOptionalArgs, // can be nil
+) (*CertmapconfigModResult, error) {
+  if reqArgs == nil {
+    return nil, fmt.Errorf("reqArgs cannot be nil")
+  }
+  kwp := certmapconfigModKwParams{
+    CertmapconfigModArgs: reqArgs,
+    CertmapconfigModOptionalArgs: optArgs,
+    Version: apiVersion,
+  }
+  req := request{
+    Method: "certmapconfig_mod",
+    Params: []interface{}{
+      []interface{}{}, &kwp},
+  }
+  readCloser, e := c.exec(&req)
+  if e != nil {
+    return nil, e
+  }
+  defer readCloser.Close()
+  var res certmapconfigModResponse
+	if e := json.NewDecoder(readCloser).Decode(&res); e != nil {
+		return nil, e
+	}
+	if res.Error != nil {
+		return nil, res.Error
+	}
+  if res.Result == nil {
+    return nil, fmt.Errorf("missing result in response")
+  }
+  return res.Result, nil
+}
+
+type CertmapconfigModArgs struct {
+  }
+
+type CertmapconfigModOptionalArgs struct {
+  
+    /*
+Prompt for the username
+Prompt for the username when multiple identities are mapped to a certificate
+    */
+    Ipacertmappromptusername *bool `json:"ipacertmappromptusername,omitempty"`
+  
+    /*
+
+Set an attribute to a name/value pair. Format is attr=value.
+For multi-valued attributes, the command replaces the values already present.
+    */
+    Setattr *[]string `json:"setattr,omitempty"`
+  
+    /*
+
+Add an attribute/value pair. Format is attr=value. The attribute
+must be part of the schema.
+    */
+    Addattr *[]string `json:"addattr,omitempty"`
+  
+    /*
+
+Delete an attribute/value pair. The option will be evaluated
+last, after all sets and adds.
+    */
+    Delattr *[]string `json:"delattr,omitempty"`
+  
+    /*
+Rights
+Display the access rights of this entry (requires --all). See ipa man page for details.
+    */
+    Rights *bool `json:"rights,omitempty"`
+  
+    /*
+
+Retrieve and print all attributes from the server. Affects command output.
+    */
+    All *bool `json:"all,omitempty"`
+  
+    /*
+
+Print entries as stored on the server. Only affects output format.
+    */
+    Raw *bool `json:"raw,omitempty"`
+  }
+
+type certmapconfigModKwParams struct {
+  *CertmapconfigModArgs
+  *CertmapconfigModOptionalArgs
+
+  /*
+  Automatically set.
+  Used by the server to determine whether to accept the request.
+  */
+  Version string `json:"version"`
+}
+
+type certmapconfigModResponse struct {
+	Error  *Error      `json:"error"`
+	Result *CertmapconfigModResult `json:"result"`
+}
+
+type CertmapconfigModResult struct {
+  
+  
+    /*
+User-friendly description of action performed
+    (optional)
+    */
+    Summary *string `json:"summary,omitempty"`
+  
+    /*
+
+    (required)
+    */
+    Result Certmapconfig `json:"result,omitempty"`
+  
+    /*
+The primary_key value of the entry, e.g. 'jdoe' for a user
+    (required)
+    */
+    Value interface{} `json:"value,omitempty"`
+  }
+
+func (t *CertmapconfigModResult) String() string {
+  if t == nil {
+    return "<nil>"
+  }
+  b, e := json.Marshal(t)
+  if e != nil {
+    return fmt.Sprintf("CertmapconfigModResult[failed json.Marshal: %v]", e)
+  }
+  return fmt.Sprintf("CertmapconfigModResult%v", string(b))
+}
+
+/*
+Show the current Certificate Identity Mapping configuration.
+*/
+func (c *Client) CertmapconfigShow(
+  reqArgs *CertmapconfigShowArgs,
+  optArgs *CertmapconfigShowOptionalArgs, // can be nil
+) (*CertmapconfigShowResult, error) {
+  if reqArgs == nil {
+    return nil, fmt.Errorf("reqArgs cannot be nil")
+  }
+  kwp := certmapconfigShowKwParams{
+    CertmapconfigShowArgs: reqArgs,
+    CertmapconfigShowOptionalArgs: optArgs,
+    Version: apiVersion,
+  }
+  req := request{
+    Method: "certmapconfig_show",
+    Params: []interface{}{
+      []interface{}{}, &kwp},
+  }
+  readCloser, e := c.exec(&req)
+  if e != nil {
+    return nil, e
+  }
+  defer readCloser.Close()
+  var res certmapconfigShowResponse
+	if e := json.NewDecoder(readCloser).Decode(&res); e != nil {
+		return nil, e
+	}
+	if res.Error != nil {
+		return nil, res.Error
+	}
+  if res.Result == nil {
+    return nil, fmt.Errorf("missing result in response")
+  }
+  return res.Result, nil
+}
+
+type CertmapconfigShowArgs struct {
+  }
+
+type CertmapconfigShowOptionalArgs struct {
+  
+    /*
+Rights
+Display the access rights of this entry (requires --all). See ipa man page for details.
+    */
+    Rights *bool `json:"rights,omitempty"`
+  
+    /*
+
+Retrieve and print all attributes from the server. Affects command output.
+    */
+    All *bool `json:"all,omitempty"`
+  
+    /*
+
+Print entries as stored on the server. Only affects output format.
+    */
+    Raw *bool `json:"raw,omitempty"`
+  }
+
+type certmapconfigShowKwParams struct {
+  *CertmapconfigShowArgs
+  *CertmapconfigShowOptionalArgs
+
+  /*
+  Automatically set.
+  Used by the server to determine whether to accept the request.
+  */
+  Version string `json:"version"`
+}
+
+type certmapconfigShowResponse struct {
+	Error  *Error      `json:"error"`
+	Result *CertmapconfigShowResult `json:"result"`
+}
+
+type CertmapconfigShowResult struct {
+  
+  
+    /*
+User-friendly description of action performed
+    (optional)
+    */
+    Summary *string `json:"summary,omitempty"`
+  
+    /*
+
+    (required)
+    */
+    Result Certmapconfig `json:"result,omitempty"`
+  
+    /*
+The primary_key value of the entry, e.g. 'jdoe' for a user
+    (required)
+    */
+    Value interface{} `json:"value,omitempty"`
+  }
+
+func (t *CertmapconfigShowResult) String() string {
+  if t == nil {
+    return "<nil>"
+  }
+  b, e := json.Marshal(t)
+  if e != nil {
+    return fmt.Sprintf("CertmapconfigShowResult[failed json.Marshal: %v]", e)
+  }
+  return fmt.Sprintf("CertmapconfigShowResult%v", string(b))
+}
+
+/*
+Create a new Certificate Identity Mapping Rule.
+*/
+func (c *Client) CertmapruleAdd(
+  reqArgs *CertmapruleAddArgs,
+  optArgs *CertmapruleAddOptionalArgs, // can be nil
+) (*CertmapruleAddResult, error) {
+  if reqArgs == nil {
+    return nil, fmt.Errorf("reqArgs cannot be nil")
+  }
+  kwp := certmapruleAddKwParams{
+    CertmapruleAddArgs: reqArgs,
+    CertmapruleAddOptionalArgs: optArgs,
+    Version: apiVersion,
+  }
+  req := request{
+    Method: "certmaprule_add",
+    Params: []interface{}{
+      []interface{}{}, &kwp},
+  }
+  readCloser, e := c.exec(&req)
+  if e != nil {
+    return nil, e
+  }
+  defer readCloser.Close()
+  var res certmapruleAddResponse
+	if e := json.NewDecoder(readCloser).Decode(&res); e != nil {
+		return nil, e
+	}
+	if res.Error != nil {
+		return nil, res.Error
+	}
+  if res.Result == nil {
+    return nil, fmt.Errorf("missing result in response")
+  }
+  return res.Result, nil
+}
+
+type CertmapruleAddArgs struct {
+  
+    /*
+Rule name
+Certificate Identity Mapping Rule name
+    */
+    Cn string `json:"cn,omitempty"`
+  }
+
+type CertmapruleAddOptionalArgs struct {
+  
+    /*
+Description
+Certificate Identity Mapping Rule description
+    */
+    Description *string `json:"description,omitempty"`
+  
+    /*
+Mapping rule
+Rule used to map the certificate with a user entry
+    */
+    Ipacertmapmaprule *string `json:"ipacertmapmaprule,omitempty"`
+  
+    /*
+Matching rule
+Rule used to check if a certificate can be used for authentication
+    */
+    Ipacertmapmatchrule *string `json:"ipacertmapmatchrule,omitempty"`
+  
+    /*
+Domain name
+Domain where the user entry will be searched
+    */
+    Associateddomain *[]interface{} `json:"associateddomain,omitempty"`
+  
+    /*
+Priority
+Priority of the rule (higher number means lower priority
+    */
+    Ipacertmappriority *int `json:"ipacertmappriority,omitempty"`
+  
+    /*
+Enabled
+
+    */
+    Ipaenabledflag *bool `json:"ipaenabledflag,omitempty"`
+  
+    /*
+
+Set an attribute to a name/value pair. Format is attr=value.
+For multi-valued attributes, the command replaces the values already present.
+    */
+    Setattr *[]string `json:"setattr,omitempty"`
+  
+    /*
+
+Add an attribute/value pair. Format is attr=value. The attribute
+must be part of the schema.
+    */
+    Addattr *[]string `json:"addattr,omitempty"`
+  
+    /*
+
+Retrieve and print all attributes from the server. Affects command output.
+    */
+    All *bool `json:"all,omitempty"`
+  
+    /*
+
+Print entries as stored on the server. Only affects output format.
+    */
+    Raw *bool `json:"raw,omitempty"`
+  }
+
+type certmapruleAddKwParams struct {
+  *CertmapruleAddArgs
+  *CertmapruleAddOptionalArgs
+
+  /*
+  Automatically set.
+  Used by the server to determine whether to accept the request.
+  */
+  Version string `json:"version"`
+}
+
+type certmapruleAddResponse struct {
+	Error  *Error      `json:"error"`
+	Result *CertmapruleAddResult `json:"result"`
+}
+
+type CertmapruleAddResult struct {
+  
+  
+    /*
+User-friendly description of action performed
+    (optional)
+    */
+    Summary *string `json:"summary,omitempty"`
+  
+    /*
+
+    (required)
+    */
+    Result Certmaprule `json:"result,omitempty"`
+  
+    /*
+The primary_key value of the entry, e.g. 'jdoe' for a user
+    (required)
+    */
+    Value string `json:"value,omitempty"`
+  }
+
+func (t *CertmapruleAddResult) String() string {
+  if t == nil {
+    return "<nil>"
+  }
+  b, e := json.Marshal(t)
+  if e != nil {
+    return fmt.Sprintf("CertmapruleAddResult[failed json.Marshal: %v]", e)
+  }
+  return fmt.Sprintf("CertmapruleAddResult%v", string(b))
+}
+
+/*
+Delete a Certificate Identity Mapping Rule.
+*/
+func (c *Client) CertmapruleDel(
+  reqArgs *CertmapruleDelArgs,
+  optArgs *CertmapruleDelOptionalArgs, // can be nil
+) (*CertmapruleDelResult, error) {
+  if reqArgs == nil {
+    return nil, fmt.Errorf("reqArgs cannot be nil")
+  }
+  kwp := certmapruleDelKwParams{
+    CertmapruleDelArgs: reqArgs,
+    CertmapruleDelOptionalArgs: optArgs,
+    Version: apiVersion,
+  }
+  req := request{
+    Method: "certmaprule_del",
+    Params: []interface{}{
+      []interface{}{}, &kwp},
+  }
+  readCloser, e := c.exec(&req)
+  if e != nil {
+    return nil, e
+  }
+  defer readCloser.Close()
+  var res certmapruleDelResponse
+	if e := json.NewDecoder(readCloser).Decode(&res); e != nil {
+		return nil, e
+	}
+	if res.Error != nil {
+		return nil, res.Error
+	}
+  if res.Result == nil {
+    return nil, fmt.Errorf("missing result in response")
+  }
+  return res.Result, nil
+}
+
+type CertmapruleDelArgs struct {
+  
+    /*
+Rule name
+Certificate Identity Mapping Rule name
+    */
+    Cn []string `json:"cn,omitempty"`
+  }
+
+type CertmapruleDelOptionalArgs struct {
+  
+    /*
+
+Continuous mode: Don't stop on errors.
+    */
+    Continue *bool `json:"continue,omitempty"`
+  }
+
+type certmapruleDelKwParams struct {
+  *CertmapruleDelArgs
+  *CertmapruleDelOptionalArgs
+
+  /*
+  Automatically set.
+  Used by the server to determine whether to accept the request.
+  */
+  Version string `json:"version"`
+}
+
+type certmapruleDelResponse struct {
+	Error  *Error      `json:"error"`
+	Result *CertmapruleDelResult `json:"result"`
+}
+
+type CertmapruleDelResult struct {
+  
+  
+    /*
+User-friendly description of action performed
+    (optional)
+    */
+    Summary *string `json:"summary,omitempty"`
+  
+    /*
+List of deletions that failed
+    (required)
+    */
+    Result interface{} `json:"result,omitempty"`
+  
+    /*
+
+    (required)
+    */
+    Value []string `json:"value,omitempty"`
+  }
+
+func (t *CertmapruleDelResult) String() string {
+  if t == nil {
+    return "<nil>"
+  }
+  b, e := json.Marshal(t)
+  if e != nil {
+    return fmt.Sprintf("CertmapruleDelResult[failed json.Marshal: %v]", e)
+  }
+  return fmt.Sprintf("CertmapruleDelResult%v", string(b))
+}
+
+/*
+Disable a Certificate Identity Mapping Rule.
+*/
+func (c *Client) CertmapruleDisable(
+  reqArgs *CertmapruleDisableArgs,
+  optArgs *CertmapruleDisableOptionalArgs, // can be nil
+) (*CertmapruleDisableResult, error) {
+  if reqArgs == nil {
+    return nil, fmt.Errorf("reqArgs cannot be nil")
+  }
+  kwp := certmapruleDisableKwParams{
+    CertmapruleDisableArgs: reqArgs,
+    CertmapruleDisableOptionalArgs: optArgs,
+    Version: apiVersion,
+  }
+  req := request{
+    Method: "certmaprule_disable",
+    Params: []interface{}{
+      []interface{}{}, &kwp},
+  }
+  readCloser, e := c.exec(&req)
+  if e != nil {
+    return nil, e
+  }
+  defer readCloser.Close()
+  var res certmapruleDisableResponse
+	if e := json.NewDecoder(readCloser).Decode(&res); e != nil {
+		return nil, e
+	}
+	if res.Error != nil {
+		return nil, res.Error
+	}
+  if res.Result == nil {
+    return nil, fmt.Errorf("missing result in response")
+  }
+  return res.Result, nil
+}
+
+type CertmapruleDisableArgs struct {
+  
+    /*
+Rule name
+Certificate Identity Mapping Rule name
+    */
+    Cn string `json:"cn,omitempty"`
+  }
+
+type CertmapruleDisableOptionalArgs struct {
+  }
+
+type certmapruleDisableKwParams struct {
+  *CertmapruleDisableArgs
+  *CertmapruleDisableOptionalArgs
+
+  /*
+  Automatically set.
+  Used by the server to determine whether to accept the request.
+  */
+  Version string `json:"version"`
+}
+
+type certmapruleDisableResponse struct {
+	Error  *Error      `json:"error"`
+	Result *CertmapruleDisableResult `json:"result"`
+}
+
+type CertmapruleDisableResult struct {
+  
+  
+    /*
+User-friendly description of action performed
+    (optional)
+    */
+    Summary *string `json:"summary,omitempty"`
+  
+    /*
+True means the operation was successful
+    (required)
+    */
+    Result bool `json:"result,omitempty"`
+  
+    /*
+The primary_key value of the entry, e.g. 'jdoe' for a user
+    (required)
+    */
+    Value string `json:"value,omitempty"`
+  }
+
+func (t *CertmapruleDisableResult) String() string {
+  if t == nil {
+    return "<nil>"
+  }
+  b, e := json.Marshal(t)
+  if e != nil {
+    return fmt.Sprintf("CertmapruleDisableResult[failed json.Marshal: %v]", e)
+  }
+  return fmt.Sprintf("CertmapruleDisableResult%v", string(b))
+}
+
+/*
+Enable a Certificate Identity Mapping Rule.
+*/
+func (c *Client) CertmapruleEnable(
+  reqArgs *CertmapruleEnableArgs,
+  optArgs *CertmapruleEnableOptionalArgs, // can be nil
+) (*CertmapruleEnableResult, error) {
+  if reqArgs == nil {
+    return nil, fmt.Errorf("reqArgs cannot be nil")
+  }
+  kwp := certmapruleEnableKwParams{
+    CertmapruleEnableArgs: reqArgs,
+    CertmapruleEnableOptionalArgs: optArgs,
+    Version: apiVersion,
+  }
+  req := request{
+    Method: "certmaprule_enable",
+    Params: []interface{}{
+      []interface{}{}, &kwp},
+  }
+  readCloser, e := c.exec(&req)
+  if e != nil {
+    return nil, e
+  }
+  defer readCloser.Close()
+  var res certmapruleEnableResponse
+	if e := json.NewDecoder(readCloser).Decode(&res); e != nil {
+		return nil, e
+	}
+	if res.Error != nil {
+		return nil, res.Error
+	}
+  if res.Result == nil {
+    return nil, fmt.Errorf("missing result in response")
+  }
+  return res.Result, nil
+}
+
+type CertmapruleEnableArgs struct {
+  
+    /*
+Rule name
+Certificate Identity Mapping Rule name
+    */
+    Cn string `json:"cn,omitempty"`
+  }
+
+type CertmapruleEnableOptionalArgs struct {
+  }
+
+type certmapruleEnableKwParams struct {
+  *CertmapruleEnableArgs
+  *CertmapruleEnableOptionalArgs
+
+  /*
+  Automatically set.
+  Used by the server to determine whether to accept the request.
+  */
+  Version string `json:"version"`
+}
+
+type certmapruleEnableResponse struct {
+	Error  *Error      `json:"error"`
+	Result *CertmapruleEnableResult `json:"result"`
+}
+
+type CertmapruleEnableResult struct {
+  
+  
+    /*
+User-friendly description of action performed
+    (optional)
+    */
+    Summary *string `json:"summary,omitempty"`
+  
+    /*
+True means the operation was successful
+    (required)
+    */
+    Result bool `json:"result,omitempty"`
+  
+    /*
+The primary_key value of the entry, e.g. 'jdoe' for a user
+    (required)
+    */
+    Value string `json:"value,omitempty"`
+  }
+
+func (t *CertmapruleEnableResult) String() string {
+  if t == nil {
+    return "<nil>"
+  }
+  b, e := json.Marshal(t)
+  if e != nil {
+    return fmt.Sprintf("CertmapruleEnableResult[failed json.Marshal: %v]", e)
+  }
+  return fmt.Sprintf("CertmapruleEnableResult%v", string(b))
+}
+
+/*
+Search for Certificate Identity Mapping Rules.
+*/
+func (c *Client) CertmapruleFind(
+  criteria string, // A string searched in all relevant object attributes
+  reqArgs *CertmapruleFindArgs,
+  optArgs *CertmapruleFindOptionalArgs, // can be nil
+) (*CertmapruleFindResult, error) {
+  if reqArgs == nil {
+    return nil, fmt.Errorf("reqArgs cannot be nil")
+  }
+  kwp := certmapruleFindKwParams{
+    CertmapruleFindArgs: reqArgs,
+    CertmapruleFindOptionalArgs: optArgs,
+    Version: apiVersion,
+  }
+  req := request{
+    Method: "certmaprule_find",
+    Params: []interface{}{
+      []interface{}{criteria, }, &kwp},
+  }
+  readCloser, e := c.exec(&req)
+  if e != nil {
+    return nil, e
+  }
+  defer readCloser.Close()
+  var res certmapruleFindResponse
+	if e := json.NewDecoder(readCloser).Decode(&res); e != nil {
+		return nil, e
+	}
+	if res.Error != nil {
+		return nil, res.Error
+	}
+  if res.Result == nil {
+    return nil, fmt.Errorf("missing result in response")
+  }
+  return res.Result, nil
+}
+
+type CertmapruleFindArgs struct {
+  }
+
+type CertmapruleFindOptionalArgs struct {
+  
+    /*
+Rule name
+Certificate Identity Mapping Rule name
+    */
+    Cn *string `json:"cn,omitempty"`
+  
+    /*
+Description
+Certificate Identity Mapping Rule description
+    */
+    Description *string `json:"description,omitempty"`
+  
+    /*
+Mapping rule
+Rule used to map the certificate with a user entry
+    */
+    Ipacertmapmaprule *string `json:"ipacertmapmaprule,omitempty"`
+  
+    /*
+Matching rule
+Rule used to check if a certificate can be used for authentication
+    */
+    Ipacertmapmatchrule *string `json:"ipacertmapmatchrule,omitempty"`
+  
+    /*
+Domain name
+Domain where the user entry will be searched
+    */
+    Associateddomain *[]interface{} `json:"associateddomain,omitempty"`
+  
+    /*
+Priority
+Priority of the rule (higher number means lower priority
+    */
+    Ipacertmappriority *int `json:"ipacertmappriority,omitempty"`
+  
+    /*
+Enabled
+
+    */
+    Ipaenabledflag *bool `json:"ipaenabledflag,omitempty"`
+  
+    /*
+Time Limit
+Time limit of search in seconds (0 is unlimited)
+    */
+    Timelimit *int `json:"timelimit,omitempty"`
+  
+    /*
+Size Limit
+Maximum number of entries returned (0 is unlimited)
+    */
+    Sizelimit *int `json:"sizelimit,omitempty"`
+  
+    /*
+
+Retrieve and print all attributes from the server. Affects command output.
+    */
+    All *bool `json:"all,omitempty"`
+  
+    /*
+
+Print entries as stored on the server. Only affects output format.
+    */
+    Raw *bool `json:"raw,omitempty"`
+  
+    /*
+Primary key only
+Results should contain primary key attribute only ("rulename")
+    */
+    PkeyOnly *bool `json:"pkey_only,omitempty"`
+  }
+
+type certmapruleFindKwParams struct {
+  *CertmapruleFindArgs
+  *CertmapruleFindOptionalArgs
+
+  /*
+  Automatically set.
+  Used by the server to determine whether to accept the request.
+  */
+  Version string `json:"version"`
+}
+
+type certmapruleFindResponse struct {
+	Error  *Error      `json:"error"`
+	Result *CertmapruleFindResult `json:"result"`
+}
+
+type CertmapruleFindResult struct {
+  
+  
+    /*
+User-friendly description of action performed
+    (optional)
+    */
+    Summary *string `json:"summary,omitempty"`
+  
+    /*
+
+    (required)
+    */
+    Result []Certmaprule `json:"result,omitempty"`
+  
+    /*
+Number of entries returned
+    (required)
+    */
+    Count int `json:"count,omitempty"`
+  
+    /*
+True if not all results were returned
+    (required)
+    */
+    Truncated bool `json:"truncated,omitempty"`
+  }
+
+func (t *CertmapruleFindResult) String() string {
+  if t == nil {
+    return "<nil>"
+  }
+  b, e := json.Marshal(t)
+  if e != nil {
+    return fmt.Sprintf("CertmapruleFindResult[failed json.Marshal: %v]", e)
+  }
+  return fmt.Sprintf("CertmapruleFindResult%v", string(b))
+}
+
+/*
+Modify a Certificate Identity Mapping Rule.
+*/
+func (c *Client) CertmapruleMod(
+  reqArgs *CertmapruleModArgs,
+  optArgs *CertmapruleModOptionalArgs, // can be nil
+) (*CertmapruleModResult, error) {
+  if reqArgs == nil {
+    return nil, fmt.Errorf("reqArgs cannot be nil")
+  }
+  kwp := certmapruleModKwParams{
+    CertmapruleModArgs: reqArgs,
+    CertmapruleModOptionalArgs: optArgs,
+    Version: apiVersion,
+  }
+  req := request{
+    Method: "certmaprule_mod",
+    Params: []interface{}{
+      []interface{}{}, &kwp},
+  }
+  readCloser, e := c.exec(&req)
+  if e != nil {
+    return nil, e
+  }
+  defer readCloser.Close()
+  var res certmapruleModResponse
+	if e := json.NewDecoder(readCloser).Decode(&res); e != nil {
+		return nil, e
+	}
+	if res.Error != nil {
+		return nil, res.Error
+	}
+  if res.Result == nil {
+    return nil, fmt.Errorf("missing result in response")
+  }
+  return res.Result, nil
+}
+
+type CertmapruleModArgs struct {
+  
+    /*
+Rule name
+Certificate Identity Mapping Rule name
+    */
+    Cn string `json:"cn,omitempty"`
+  }
+
+type CertmapruleModOptionalArgs struct {
+  
+    /*
+Description
+Certificate Identity Mapping Rule description
+    */
+    Description *string `json:"description,omitempty"`
+  
+    /*
+Mapping rule
+Rule used to map the certificate with a user entry
+    */
+    Ipacertmapmaprule *string `json:"ipacertmapmaprule,omitempty"`
+  
+    /*
+Matching rule
+Rule used to check if a certificate can be used for authentication
+    */
+    Ipacertmapmatchrule *string `json:"ipacertmapmatchrule,omitempty"`
+  
+    /*
+Domain name
+Domain where the user entry will be searched
+    */
+    Associateddomain *[]interface{} `json:"associateddomain,omitempty"`
+  
+    /*
+Priority
+Priority of the rule (higher number means lower priority
+    */
+    Ipacertmappriority *int `json:"ipacertmappriority,omitempty"`
+  
+    /*
+Enabled
+
+    */
+    Ipaenabledflag *bool `json:"ipaenabledflag,omitempty"`
+  
+    /*
+
+Set an attribute to a name/value pair. Format is attr=value.
+For multi-valued attributes, the command replaces the values already present.
+    */
+    Setattr *[]string `json:"setattr,omitempty"`
+  
+    /*
+
+Add an attribute/value pair. Format is attr=value. The attribute
+must be part of the schema.
+    */
+    Addattr *[]string `json:"addattr,omitempty"`
+  
+    /*
+
+Delete an attribute/value pair. The option will be evaluated
+last, after all sets and adds.
+    */
+    Delattr *[]string `json:"delattr,omitempty"`
+  
+    /*
+Rights
+Display the access rights of this entry (requires --all). See ipa man page for details.
+    */
+    Rights *bool `json:"rights,omitempty"`
+  
+    /*
+
+Retrieve and print all attributes from the server. Affects command output.
+    */
+    All *bool `json:"all,omitempty"`
+  
+    /*
+
+Print entries as stored on the server. Only affects output format.
+    */
+    Raw *bool `json:"raw,omitempty"`
+  }
+
+type certmapruleModKwParams struct {
+  *CertmapruleModArgs
+  *CertmapruleModOptionalArgs
+
+  /*
+  Automatically set.
+  Used by the server to determine whether to accept the request.
+  */
+  Version string `json:"version"`
+}
+
+type certmapruleModResponse struct {
+	Error  *Error      `json:"error"`
+	Result *CertmapruleModResult `json:"result"`
+}
+
+type CertmapruleModResult struct {
+  
+  
+    /*
+User-friendly description of action performed
+    (optional)
+    */
+    Summary *string `json:"summary,omitempty"`
+  
+    /*
+
+    (required)
+    */
+    Result Certmaprule `json:"result,omitempty"`
+  
+    /*
+The primary_key value of the entry, e.g. 'jdoe' for a user
+    (required)
+    */
+    Value string `json:"value,omitempty"`
+  }
+
+func (t *CertmapruleModResult) String() string {
+  if t == nil {
+    return "<nil>"
+  }
+  b, e := json.Marshal(t)
+  if e != nil {
+    return fmt.Sprintf("CertmapruleModResult[failed json.Marshal: %v]", e)
+  }
+  return fmt.Sprintf("CertmapruleModResult%v", string(b))
+}
+
+/*
+Display information about a Certificate Identity Mapping Rule.
+*/
+func (c *Client) CertmapruleShow(
+  reqArgs *CertmapruleShowArgs,
+  optArgs *CertmapruleShowOptionalArgs, // can be nil
+) (*CertmapruleShowResult, error) {
+  if reqArgs == nil {
+    return nil, fmt.Errorf("reqArgs cannot be nil")
+  }
+  kwp := certmapruleShowKwParams{
+    CertmapruleShowArgs: reqArgs,
+    CertmapruleShowOptionalArgs: optArgs,
+    Version: apiVersion,
+  }
+  req := request{
+    Method: "certmaprule_show",
+    Params: []interface{}{
+      []interface{}{}, &kwp},
+  }
+  readCloser, e := c.exec(&req)
+  if e != nil {
+    return nil, e
+  }
+  defer readCloser.Close()
+  var res certmapruleShowResponse
+	if e := json.NewDecoder(readCloser).Decode(&res); e != nil {
+		return nil, e
+	}
+	if res.Error != nil {
+		return nil, res.Error
+	}
+  if res.Result == nil {
+    return nil, fmt.Errorf("missing result in response")
+  }
+  return res.Result, nil
+}
+
+type CertmapruleShowArgs struct {
+  
+    /*
+Rule name
+Certificate Identity Mapping Rule name
+    */
+    Cn string `json:"cn,omitempty"`
+  }
+
+type CertmapruleShowOptionalArgs struct {
+  
+    /*
+Rights
+Display the access rights of this entry (requires --all). See ipa man page for details.
+    */
+    Rights *bool `json:"rights,omitempty"`
+  
+    /*
+
+Retrieve and print all attributes from the server. Affects command output.
+    */
+    All *bool `json:"all,omitempty"`
+  
+    /*
+
+Print entries as stored on the server. Only affects output format.
+    */
+    Raw *bool `json:"raw,omitempty"`
+  }
+
+type certmapruleShowKwParams struct {
+  *CertmapruleShowArgs
+  *CertmapruleShowOptionalArgs
+
+  /*
+  Automatically set.
+  Used by the server to determine whether to accept the request.
+  */
+  Version string `json:"version"`
+}
+
+type certmapruleShowResponse struct {
+	Error  *Error      `json:"error"`
+	Result *CertmapruleShowResult `json:"result"`
+}
+
+type CertmapruleShowResult struct {
+  
+  
+    /*
+User-friendly description of action performed
+    (optional)
+    */
+    Summary *string `json:"summary,omitempty"`
+  
+    /*
+
+    (required)
+    */
+    Result Certmaprule `json:"result,omitempty"`
+  
+    /*
+The primary_key value of the entry, e.g. 'jdoe' for a user
+    (required)
+    */
+    Value string `json:"value,omitempty"`
+  }
+
+func (t *CertmapruleShowResult) String() string {
+  if t == nil {
+    return "<nil>"
+  }
+  b, e := json.Marshal(t)
+  if e != nil {
+    return fmt.Sprintf("CertmapruleShowResult[failed json.Marshal: %v]", e)
+  }
+  return fmt.Sprintf("CertmapruleShowResult%v", string(b))
 }
 
 /*
@@ -9992,6 +11450,12 @@ IPA CA renewal master
 Renewal master for IPA certificate authority
     */
     CaRenewalMasterServer *string `json:"ca_renewal_master_server,omitempty"`
+  
+    /*
+Domain resolution order
+colon-separated list of domains used for short name qualification
+    */
+    Ipadomainresolutionorder *string `json:"ipadomainresolutionorder,omitempty"`
   
     /*
 
@@ -12089,7 +13553,7 @@ type DnsforwardzoneAddOptionalArgs struct {
 Zone name
 Zone name (FQDN)
     */
-    Idnsname *string `json:"idnsname,omitempty"`
+    Idnsname *interface{} `json:"idnsname,omitempty"`
   
     /*
 Reverse zone IP network
@@ -12177,7 +13641,7 @@ User-friendly description of action performed
 The primary_key value of the entry, e.g. 'jdoe' for a user
     (required)
     */
-    Value string `json:"value,omitempty"`
+    Value interface{} `json:"value,omitempty"`
   }
 
 func (t *DnsforwardzoneAddResult) String() string {
@@ -12238,7 +13702,7 @@ type DnsforwardzoneAddPermissionOptionalArgs struct {
 Zone name
 Zone name (FQDN)
     */
-    Idnsname *string `json:"idnsname,omitempty"`
+    Idnsname *interface{} `json:"idnsname,omitempty"`
   }
 
 type dnsforwardzoneAddPermissionKwParams struct {
@@ -12337,7 +13801,7 @@ type DnsforwardzoneDelOptionalArgs struct {
 Zone name
 Zone name (FQDN)
     */
-    Idnsname *[]string `json:"idnsname,omitempty"`
+    Idnsname *[]interface{} `json:"idnsname,omitempty"`
   
     /*
 
@@ -12381,7 +13845,7 @@ List of deletions that failed
 
     (required)
     */
-    Value []string `json:"value,omitempty"`
+    Value []interface{} `json:"value,omitempty"`
   }
 
 func (t *DnsforwardzoneDelResult) String() string {
@@ -12442,7 +13906,7 @@ type DnsforwardzoneDisableOptionalArgs struct {
 Zone name
 Zone name (FQDN)
     */
-    Idnsname *string `json:"idnsname,omitempty"`
+    Idnsname *interface{} `json:"idnsname,omitempty"`
   }
 
 type dnsforwardzoneDisableKwParams struct {
@@ -12480,7 +13944,7 @@ True means the operation was successful
 The primary_key value of the entry, e.g. 'jdoe' for a user
     (required)
     */
-    Value string `json:"value,omitempty"`
+    Value interface{} `json:"value,omitempty"`
   }
 
 func (t *DnsforwardzoneDisableResult) String() string {
@@ -12541,7 +14005,7 @@ type DnsforwardzoneEnableOptionalArgs struct {
 Zone name
 Zone name (FQDN)
     */
-    Idnsname *string `json:"idnsname,omitempty"`
+    Idnsname *interface{} `json:"idnsname,omitempty"`
   }
 
 type dnsforwardzoneEnableKwParams struct {
@@ -12579,7 +14043,7 @@ True means the operation was successful
 The primary_key value of the entry, e.g. 'jdoe' for a user
     (required)
     */
-    Value string `json:"value,omitempty"`
+    Value interface{} `json:"value,omitempty"`
   }
 
 func (t *DnsforwardzoneEnableResult) String() string {
@@ -12641,7 +14105,7 @@ type DnsforwardzoneFindOptionalArgs struct {
 Zone name
 Zone name (FQDN)
     */
-    Idnsname *string `json:"idnsname,omitempty"`
+    Idnsname *interface{} `json:"idnsname,omitempty"`
   
     /*
 Reverse zone IP network
@@ -12800,7 +14264,7 @@ type DnsforwardzoneModOptionalArgs struct {
 Zone name
 Zone name (FQDN)
     */
-    Idnsname *string `json:"idnsname,omitempty"`
+    Idnsname *interface{} `json:"idnsname,omitempty"`
   
     /*
 Reverse zone IP network
@@ -12895,7 +14359,7 @@ User-friendly description of action performed
 The primary_key value of the entry, e.g. 'jdoe' for a user
     (required)
     */
-    Value string `json:"value,omitempty"`
+    Value interface{} `json:"value,omitempty"`
   }
 
 func (t *DnsforwardzoneModResult) String() string {
@@ -12956,7 +14420,7 @@ type DnsforwardzoneRemovePermissionOptionalArgs struct {
 Zone name
 Zone name (FQDN)
     */
-    Idnsname *string `json:"idnsname,omitempty"`
+    Idnsname *interface{} `json:"idnsname,omitempty"`
   }
 
 type dnsforwardzoneRemovePermissionKwParams struct {
@@ -13055,7 +14519,7 @@ type DnsforwardzoneShowOptionalArgs struct {
 Zone name
 Zone name (FQDN)
     */
-    Idnsname *string `json:"idnsname,omitempty"`
+    Idnsname *interface{} `json:"idnsname,omitempty"`
   
     /*
 Rights
@@ -13111,7 +14575,7 @@ User-friendly description of action performed
 The primary_key value of the entry, e.g. 'jdoe' for a user
     (required)
     */
-    Value string `json:"value,omitempty"`
+    Value interface{} `json:"value,omitempty"`
   }
 
 func (t *DnsforwardzoneShowResult) String() string {
@@ -13169,7 +14633,7 @@ type DnsrecordAddArgs struct {
 Record name
 Record name
     */
-    Idnsname string `json:"idnsname,omitempty"`
+    Idnsname interface{} `json:"idnsname,omitempty"`
   }
 
 type DnsrecordAddOptionalArgs struct {
@@ -13178,7 +14642,7 @@ type DnsrecordAddOptionalArgs struct {
 Zone name
 Zone name (FQDN)
     */
-    Dnszoneidnsname *string `json:"dnszoneidnsname,omitempty"`
+    Dnszoneidnsname *interface{} `json:"dnszoneidnsname,omitempty"`
   
     /*
 Time to live
@@ -13256,7 +14720,7 @@ AFSDB Subtype
 AFSDB Hostname
 
     */
-    AfsdbPartHostname *string `json:"afsdb_part_hostname,omitempty"`
+    AfsdbPartHostname *interface{} `json:"afsdb_part_hostname,omitempty"`
   
     /*
 APL record
@@ -13304,7 +14768,7 @@ Raw CNAME records
 CNAME Hostname
 A hostname which this alias hostname points to
     */
-    CnamePartHostname *string `json:"cname_part_hostname,omitempty"`
+    CnamePartHostname *interface{} `json:"cname_part_hostname,omitempty"`
   
     /*
 DHCID record
@@ -13352,7 +14816,7 @@ Raw DNAME records
 DNAME Target
 
     */
-    DnamePartTarget *string `json:"dname_part_target,omitempty"`
+    DnamePartTarget *interface{} `json:"dname_part_target,omitempty"`
   
     /*
 DS record
@@ -13418,7 +14882,7 @@ Preference given to this exchanger. Lower values are more preferred
 KX Exchanger
 A host willing to act as a key exchanger
     */
-    KxPartExchanger *string `json:"kx_part_exchanger,omitempty"`
+    KxPartExchanger *interface{} `json:"kx_part_exchanger,omitempty"`
   
     /*
 LOC record
@@ -13514,7 +14978,7 @@ Preference given to this exchanger. Lower values are more preferred
 MX Exchanger
 A host willing to act as a mail exchanger
     */
-    MxPartExchanger *string `json:"mx_part_exchanger,omitempty"`
+    MxPartExchanger *interface{} `json:"mx_part_exchanger,omitempty"`
   
     /*
 NAPTR record
@@ -13568,7 +15032,7 @@ Raw NS records
 NS Hostname
 
     */
-    NsPartHostname *string `json:"ns_part_hostname,omitempty"`
+    NsPartHostname *interface{} `json:"ns_part_hostname,omitempty"`
   
     /*
 NSEC record
@@ -13586,7 +15050,7 @@ Raw PTR records
 PTR Hostname
 The hostname this reverse record points to
     */
-    PtrPartHostname *string `json:"ptr_part_hostname,omitempty"`
+    PtrPartHostname *interface{} `json:"ptr_part_hostname,omitempty"`
   
     /*
 RRSIG record
@@ -13619,14 +15083,14 @@ Raw SRV records
     Srvrecord *[]string `json:"srvrecord,omitempty"`
   
     /*
-SRV Priority
-
+SRV Priority (order)
+Lower number means higher priority. Clients will attempt to contact the server with the lowest-numbered priority they can reach.
     */
     SrvPartPriority *int `json:"srv_part_priority,omitempty"`
   
     /*
 SRV Weight
-
+Relative weight for entries with the same priority.
     */
     SrvPartWeight *int `json:"srv_part_weight,omitempty"`
   
@@ -13640,7 +15104,7 @@ SRV Port
 SRV Target
 The domain name of the target host or '.' if the service is decidedly not available at this domain
     */
-    SrvPartTarget *string `json:"srv_part_target,omitempty"`
+    SrvPartTarget *interface{} `json:"srv_part_target,omitempty"`
   
     /*
 SSHFP record
@@ -13707,6 +15171,30 @@ TXT Text Data
 
     */
     TxtPartData *string `json:"txt_part_data,omitempty"`
+  
+    /*
+URI record
+Raw URI records
+    */
+    Urirecord *[]string `json:"urirecord,omitempty"`
+  
+    /*
+URI Priority (order)
+Lower number means higher priority. Clients will attempt to contact the URI with the lowest-numbered priority they can reach.
+    */
+    URIPartPriority *int `json:"uri_part_priority,omitempty"`
+  
+    /*
+URI Weight
+Relative weight for entries with the same priority.
+    */
+    URIPartWeight *int `json:"uri_part_weight,omitempty"`
+  
+    /*
+URI Target Uniform Resource Identifier
+Target Uniform Resource Identifier according to RFC 3986
+    */
+    URIPartTarget *string `json:"uri_part_target,omitempty"`
   
     /*
 
@@ -13782,7 +15270,7 @@ User-friendly description of action performed
 The primary_key value of the entry, e.g. 'jdoe' for a user
     (required)
     */
-    Value string `json:"value,omitempty"`
+    Value interface{} `json:"value,omitempty"`
   }
 
 func (t *DnsrecordAddResult) String() string {
@@ -13840,7 +15328,7 @@ type DnsrecordDelArgs struct {
 Record name
 Record name
     */
-    Idnsname string `json:"idnsname,omitempty"`
+    Idnsname interface{} `json:"idnsname,omitempty"`
   }
 
 type DnsrecordDelOptionalArgs struct {
@@ -13849,7 +15337,7 @@ type DnsrecordDelOptionalArgs struct {
 Zone name
 Zone name (FQDN)
     */
-    Dnszoneidnsname *string `json:"dnszoneidnsname,omitempty"`
+    Dnszoneidnsname *interface{} `json:"dnszoneidnsname,omitempty"`
   
     /*
 Time to live
@@ -14038,6 +15526,12 @@ Raw TXT records
     Txtrecord *[]string `json:"txtrecord,omitempty"`
   
     /*
+URI record
+Raw URI records
+    */
+    Urirecord *[]string `json:"urirecord,omitempty"`
+  
+    /*
 Delete all associated records
 
     */
@@ -14091,7 +15585,7 @@ List of deletions that failed
 
     (required)
     */
-    Value []string `json:"value,omitempty"`
+    Value []interface{} `json:"value,omitempty"`
   }
 
 func (t *DnsrecordDelResult) String() string {
@@ -14149,7 +15643,7 @@ type DnsrecordDelentryArgs struct {
 Record name
 Record name
     */
-    Idnsname []string `json:"idnsname,omitempty"`
+    Idnsname []interface{} `json:"idnsname,omitempty"`
   }
 
 type DnsrecordDelentryOptionalArgs struct {
@@ -14158,7 +15652,7 @@ type DnsrecordDelentryOptionalArgs struct {
 Zone name
 Zone name (FQDN)
     */
-    Dnszoneidnsname *string `json:"dnszoneidnsname,omitempty"`
+    Dnszoneidnsname *interface{} `json:"dnszoneidnsname,omitempty"`
   
     /*
 
@@ -14202,7 +15696,7 @@ List of deletions that failed
 
     (required)
     */
-    Value []string `json:"value,omitempty"`
+    Value []interface{} `json:"value,omitempty"`
   }
 
 func (t *DnsrecordDelentryResult) String() string {
@@ -14264,13 +15758,13 @@ type DnsrecordFindOptionalArgs struct {
 Zone name
 Zone name (FQDN)
     */
-    Dnszoneidnsname *string `json:"dnszoneidnsname,omitempty"`
+    Dnszoneidnsname *interface{} `json:"dnszoneidnsname,omitempty"`
   
     /*
 Record name
 Record name
     */
-    Idnsname *string `json:"idnsname,omitempty"`
+    Idnsname *interface{} `json:"idnsname,omitempty"`
   
     /*
 Time to live
@@ -14457,6 +15951,12 @@ TXT record
 Raw TXT records
     */
     Txtrecord *[]string `json:"txtrecord,omitempty"`
+  
+    /*
+URI record
+Raw URI records
+    */
+    Urirecord *[]string `json:"urirecord,omitempty"`
   
     /*
 Time Limit
@@ -14594,7 +16094,7 @@ type DnsrecordModArgs struct {
 Record name
 Record name
     */
-    Idnsname string `json:"idnsname,omitempty"`
+    Idnsname interface{} `json:"idnsname,omitempty"`
   }
 
 type DnsrecordModOptionalArgs struct {
@@ -14603,7 +16103,7 @@ type DnsrecordModOptionalArgs struct {
 Zone name
 Zone name (FQDN)
     */
-    Dnszoneidnsname *string `json:"dnszoneidnsname,omitempty"`
+    Dnszoneidnsname *interface{} `json:"dnszoneidnsname,omitempty"`
   
     /*
 Time to live
@@ -14669,7 +16169,7 @@ AFSDB Subtype
 AFSDB Hostname
 
     */
-    AfsdbPartHostname *string `json:"afsdb_part_hostname,omitempty"`
+    AfsdbPartHostname *interface{} `json:"afsdb_part_hostname,omitempty"`
   
     /*
 APL record
@@ -14717,7 +16217,7 @@ Raw CNAME records
 CNAME Hostname
 A hostname which this alias hostname points to
     */
-    CnamePartHostname *string `json:"cname_part_hostname,omitempty"`
+    CnamePartHostname *interface{} `json:"cname_part_hostname,omitempty"`
   
     /*
 DHCID record
@@ -14765,7 +16265,7 @@ Raw DNAME records
 DNAME Target
 
     */
-    DnamePartTarget *string `json:"dname_part_target,omitempty"`
+    DnamePartTarget *interface{} `json:"dname_part_target,omitempty"`
   
     /*
 DS record
@@ -14831,7 +16331,7 @@ Preference given to this exchanger. Lower values are more preferred
 KX Exchanger
 A host willing to act as a key exchanger
     */
-    KxPartExchanger *string `json:"kx_part_exchanger,omitempty"`
+    KxPartExchanger *interface{} `json:"kx_part_exchanger,omitempty"`
   
     /*
 LOC record
@@ -14927,7 +16427,7 @@ Preference given to this exchanger. Lower values are more preferred
 MX Exchanger
 A host willing to act as a mail exchanger
     */
-    MxPartExchanger *string `json:"mx_part_exchanger,omitempty"`
+    MxPartExchanger *interface{} `json:"mx_part_exchanger,omitempty"`
   
     /*
 NAPTR record
@@ -14981,7 +16481,7 @@ Raw NS records
 NS Hostname
 
     */
-    NsPartHostname *string `json:"ns_part_hostname,omitempty"`
+    NsPartHostname *interface{} `json:"ns_part_hostname,omitempty"`
   
     /*
 NSEC record
@@ -14999,7 +16499,7 @@ Raw PTR records
 PTR Hostname
 The hostname this reverse record points to
     */
-    PtrPartHostname *string `json:"ptr_part_hostname,omitempty"`
+    PtrPartHostname *interface{} `json:"ptr_part_hostname,omitempty"`
   
     /*
 RRSIG record
@@ -15032,14 +16532,14 @@ Raw SRV records
     Srvrecord *[]string `json:"srvrecord,omitempty"`
   
     /*
-SRV Priority
-
+SRV Priority (order)
+Lower number means higher priority. Clients will attempt to contact the server with the lowest-numbered priority they can reach.
     */
     SrvPartPriority *int `json:"srv_part_priority,omitempty"`
   
     /*
 SRV Weight
-
+Relative weight for entries with the same priority.
     */
     SrvPartWeight *int `json:"srv_part_weight,omitempty"`
   
@@ -15053,7 +16553,7 @@ SRV Port
 SRV Target
 The domain name of the target host or '.' if the service is decidedly not available at this domain
     */
-    SrvPartTarget *string `json:"srv_part_target,omitempty"`
+    SrvPartTarget *interface{} `json:"srv_part_target,omitempty"`
   
     /*
 SSHFP record
@@ -15122,6 +16622,30 @@ TXT Text Data
     TxtPartData *string `json:"txt_part_data,omitempty"`
   
     /*
+URI record
+Raw URI records
+    */
+    Urirecord *[]string `json:"urirecord,omitempty"`
+  
+    /*
+URI Priority (order)
+Lower number means higher priority. Clients will attempt to contact the URI with the lowest-numbered priority they can reach.
+    */
+    URIPartPriority *int `json:"uri_part_priority,omitempty"`
+  
+    /*
+URI Weight
+Relative weight for entries with the same priority.
+    */
+    URIPartWeight *int `json:"uri_part_weight,omitempty"`
+  
+    /*
+URI Target Uniform Resource Identifier
+Target Uniform Resource Identifier according to RFC 3986
+    */
+    URIPartTarget *string `json:"uri_part_target,omitempty"`
+  
+    /*
 
 Set an attribute to a name/value pair. Format is attr=value.
 For multi-valued attributes, the command replaces the values already present.
@@ -15170,7 +16694,7 @@ Print entries as stored on the server. Only affects output format.
 Rename
 Rename the DNS resource record object
     */
-    Rename *string `json:"rename,omitempty"`
+    Rename *interface{} `json:"rename,omitempty"`
   }
 
 type dnsrecordModKwParams struct {
@@ -15208,7 +16732,7 @@ User-friendly description of action performed
 The primary_key value of the entry, e.g. 'jdoe' for a user
     (required)
     */
-    Value string `json:"value,omitempty"`
+    Value interface{} `json:"value,omitempty"`
   }
 
 func (t *DnsrecordModResult) String() string {
@@ -15266,7 +16790,7 @@ type DnsrecordShowArgs struct {
 Record name
 Record name
     */
-    Idnsname string `json:"idnsname,omitempty"`
+    Idnsname interface{} `json:"idnsname,omitempty"`
   }
 
 type DnsrecordShowOptionalArgs struct {
@@ -15275,7 +16799,7 @@ type DnsrecordShowOptionalArgs struct {
 Zone name
 Zone name (FQDN)
     */
-    Dnszoneidnsname *string `json:"dnszoneidnsname,omitempty"`
+    Dnszoneidnsname *interface{} `json:"dnszoneidnsname,omitempty"`
   
     /*
 Rights
@@ -15337,7 +16861,7 @@ User-friendly description of action performed
 The primary_key value of the entry, e.g. 'jdoe' for a user
     (required)
     */
-    Value string `json:"value,omitempty"`
+    Value interface{} `json:"value,omitempty"`
   }
 
 func (t *DnsrecordShowResult) String() string {
@@ -15498,7 +17022,7 @@ DNS Server name
 SOA mname override
 SOA mname (authoritative server) override
     */
-    Idnssoamname *string `json:"idnssoamname,omitempty"`
+    Idnssoamname *interface{} `json:"idnssoamname,omitempty"`
   
     /*
 Forwarders
@@ -15651,7 +17175,7 @@ type DnsserverModOptionalArgs struct {
 SOA mname override
 SOA mname (authoritative server) override
     */
-    Idnssoamname *string `json:"idnssoamname,omitempty"`
+    Idnssoamname *interface{} `json:"idnssoamname,omitempty"`
   
     /*
 Forwarders
@@ -15924,7 +17448,7 @@ type DnszoneAddOptionalArgs struct {
 Zone name
 Zone name (FQDN)
     */
-    Idnsname *string `json:"idnsname,omitempty"`
+    Idnsname *interface{} `json:"idnsname,omitempty"`
   
     /*
 Reverse zone IP network
@@ -15948,13 +17472,13 @@ Per-zone conditional forwarding policy. Set to "none" to disable forwarding to g
 Authoritative nameserver
 Authoritative nameserver domain name
     */
-    Idnssoamname *string `json:"idnssoamname,omitempty"`
+    Idnssoamname *interface{} `json:"idnssoamname,omitempty"`
   
     /*
 Administrator e-mail address
 Administrator e-mail address
     */
-    Idnssoarname *string `json:"idnssoarname,omitempty"`
+    Idnssoarname *interface{} `json:"idnssoarname,omitempty"`
   
     /*
 SOA refresh
@@ -16126,7 +17650,7 @@ User-friendly description of action performed
 The primary_key value of the entry, e.g. 'jdoe' for a user
     (required)
     */
-    Value string `json:"value,omitempty"`
+    Value interface{} `json:"value,omitempty"`
   }
 
 func (t *DnszoneAddResult) String() string {
@@ -16187,7 +17711,7 @@ type DnszoneAddPermissionOptionalArgs struct {
 Zone name
 Zone name (FQDN)
     */
-    Idnsname *string `json:"idnsname,omitempty"`
+    Idnsname *interface{} `json:"idnsname,omitempty"`
   }
 
 type dnszoneAddPermissionKwParams struct {
@@ -16286,7 +17810,7 @@ type DnszoneDelOptionalArgs struct {
 Zone name
 Zone name (FQDN)
     */
-    Idnsname *[]string `json:"idnsname,omitempty"`
+    Idnsname *[]interface{} `json:"idnsname,omitempty"`
   
     /*
 
@@ -16330,7 +17854,7 @@ List of deletions that failed
 
     (required)
     */
-    Value []string `json:"value,omitempty"`
+    Value []interface{} `json:"value,omitempty"`
   }
 
 func (t *DnszoneDelResult) String() string {
@@ -16391,7 +17915,7 @@ type DnszoneDisableOptionalArgs struct {
 Zone name
 Zone name (FQDN)
     */
-    Idnsname *string `json:"idnsname,omitempty"`
+    Idnsname *interface{} `json:"idnsname,omitempty"`
   }
 
 type dnszoneDisableKwParams struct {
@@ -16429,7 +17953,7 @@ True means the operation was successful
 The primary_key value of the entry, e.g. 'jdoe' for a user
     (required)
     */
-    Value string `json:"value,omitempty"`
+    Value interface{} `json:"value,omitempty"`
   }
 
 func (t *DnszoneDisableResult) String() string {
@@ -16490,7 +18014,7 @@ type DnszoneEnableOptionalArgs struct {
 Zone name
 Zone name (FQDN)
     */
-    Idnsname *string `json:"idnsname,omitempty"`
+    Idnsname *interface{} `json:"idnsname,omitempty"`
   }
 
 type dnszoneEnableKwParams struct {
@@ -16528,7 +18052,7 @@ True means the operation was successful
 The primary_key value of the entry, e.g. 'jdoe' for a user
     (required)
     */
-    Value string `json:"value,omitempty"`
+    Value interface{} `json:"value,omitempty"`
   }
 
 func (t *DnszoneEnableResult) String() string {
@@ -16590,7 +18114,7 @@ type DnszoneFindOptionalArgs struct {
 Zone name
 Zone name (FQDN)
     */
-    Idnsname *string `json:"idnsname,omitempty"`
+    Idnsname *interface{} `json:"idnsname,omitempty"`
   
     /*
 Reverse zone IP network
@@ -16620,13 +18144,13 @@ Per-zone conditional forwarding policy. Set to "none" to disable forwarding to g
 Authoritative nameserver
 Authoritative nameserver domain name
     */
-    Idnssoamname *string `json:"idnssoamname,omitempty"`
+    Idnssoamname *interface{} `json:"idnssoamname,omitempty"`
   
     /*
 Administrator e-mail address
 Administrator e-mail address
     */
-    Idnssoarname *string `json:"idnssoarname,omitempty"`
+    Idnssoarname *interface{} `json:"idnssoarname,omitempty"`
   
     /*
 SOA serial
@@ -16857,7 +18381,7 @@ type DnszoneModOptionalArgs struct {
 Zone name
 Zone name (FQDN)
     */
-    Idnsname *string `json:"idnsname,omitempty"`
+    Idnsname *interface{} `json:"idnsname,omitempty"`
   
     /*
 Reverse zone IP network
@@ -16881,13 +18405,13 @@ Per-zone conditional forwarding policy. Set to "none" to disable forwarding to g
 Authoritative nameserver
 Authoritative nameserver domain name
     */
-    Idnssoamname *string `json:"idnssoamname,omitempty"`
+    Idnssoamname *interface{} `json:"idnssoamname,omitempty"`
   
     /*
 Administrator e-mail address
 Administrator e-mail address
     */
-    Idnssoarname *string `json:"idnssoarname,omitempty"`
+    Idnssoarname *interface{} `json:"idnssoarname,omitempty"`
   
     /*
 SOA serial
@@ -17060,7 +18584,7 @@ User-friendly description of action performed
 The primary_key value of the entry, e.g. 'jdoe' for a user
     (required)
     */
-    Value string `json:"value,omitempty"`
+    Value interface{} `json:"value,omitempty"`
   }
 
 func (t *DnszoneModResult) String() string {
@@ -17121,7 +18645,7 @@ type DnszoneRemovePermissionOptionalArgs struct {
 Zone name
 Zone name (FQDN)
     */
-    Idnsname *string `json:"idnsname,omitempty"`
+    Idnsname *interface{} `json:"idnsname,omitempty"`
   }
 
 type dnszoneRemovePermissionKwParams struct {
@@ -17220,7 +18744,7 @@ type DnszoneShowOptionalArgs struct {
 Zone name
 Zone name (FQDN)
     */
-    Idnsname *string `json:"idnsname,omitempty"`
+    Idnsname *interface{} `json:"idnsname,omitempty"`
   
     /*
 Rights
@@ -17276,7 +18800,7 @@ User-friendly description of action performed
 The primary_key value of the entry, e.g. 'jdoe' for a user
     (required)
     */
-    Value string `json:"value,omitempty"`
+    Value interface{} `json:"value,omitempty"`
   }
 
 func (t *DnszoneShowResult) String() string {
@@ -19975,6 +21499,12 @@ Print entries as stored on the server. Only affects output format.
 Suppress processing of membership attributes.
     */
     NoMembers *bool `json:"no_members,omitempty"`
+  
+    /*
+Rename
+Rename the HBAC rule object
+    */
+    Rename *string `json:"rename,omitempty"`
   }
 
 type hbacruleModKwParams struct {
@@ -22497,7 +24027,7 @@ Generate a random password to be used in bulk enrollment
 Certificate
 Base-64 encoded host certificate
     */
-    Usercertificate *[]string `json:"usercertificate,omitempty"`
+    Usercertificate *[]interface{} `json:"usercertificate,omitempty"`
   
     /*
 MAC address
@@ -22697,7 +24227,7 @@ Host name
 Certificate
 Base-64 encoded host certificate
     */
-    Usercertificate []string `json:"usercertificate,omitempty"`
+    Usercertificate []interface{} `json:"usercertificate,omitempty"`
   }
 
 type HostAddCertOptionalArgs struct {
@@ -23880,7 +25410,7 @@ Password used in bulk enrollment
 Certificate
 Base-64 encoded host certificate
     */
-    Usercertificate *[]string `json:"usercertificate,omitempty"`
+    Usercertificate *[]interface{} `json:"usercertificate,omitempty"`
   
     /*
 MAC address
@@ -24189,7 +25719,7 @@ Generate a random password to be used in bulk enrollment
 Certificate
 Base-64 encoded host certificate
     */
-    Usercertificate *[]string `json:"usercertificate,omitempty"`
+    Usercertificate *[]interface{} `json:"usercertificate,omitempty"`
   
     /*
 Principal alias
@@ -24396,7 +25926,7 @@ Host name
 Certificate
 Base-64 encoded host certificate
     */
-    Usercertificate []string `json:"usercertificate,omitempty"`
+    Usercertificate []interface{} `json:"usercertificate,omitempty"`
   }
 
 type HostRemoveCertOptionalArgs struct {
@@ -26772,7 +28302,7 @@ SSH public key
 Certificate
 Base-64 encoded user certificate
     */
-    Usercertificate *[]string `json:"usercertificate,omitempty"`
+    Usercertificate *[]interface{} `json:"usercertificate,omitempty"`
   
     /*
 
@@ -26912,7 +28442,7 @@ Anchor to override
 Certificate
 Base-64 encoded user certificate
     */
-    Usercertificate []string `json:"usercertificate,omitempty"`
+    Usercertificate []interface{} `json:"usercertificate,omitempty"`
   }
 
 type IdoverrideuserAddCertOptionalArgs struct {
@@ -27411,7 +28941,7 @@ SSH public key
 Certificate
 Base-64 encoded user certificate
     */
-    Usercertificate *[]string `json:"usercertificate,omitempty"`
+    Usercertificate *[]interface{} `json:"usercertificate,omitempty"`
   
     /*
 
@@ -27570,7 +29100,7 @@ Anchor to override
 Certificate
 Base-64 encoded user certificate
     */
-    Usercertificate []string `json:"usercertificate,omitempty"`
+    Usercertificate []interface{} `json:"usercertificate,omitempty"`
   }
 
 type IdoverrideuserRemoveCertOptionalArgs struct {
@@ -27889,7 +29419,7 @@ Name of the trusted domain
   
     /*
 Range type
-ID range type, one of ipa-ad-trust-posix, ipa-ad-trust, ipa-local
+ID range type, one of ipa-ad-trust, ipa-ad-trust-posix, ipa-local
     */
     Iparangetype *string `json:"iparangetype,omitempty"`
   
@@ -28156,7 +29686,7 @@ Domain SID of the trusted domain
   
     /*
 Range type
-ID range type, one of ipa-ad-trust-posix, ipa-ad-trust, ipa-local
+ID range type, one of ipa-ad-trust, ipa-ad-trust-posix, ipa-local
     */
     Iparangetype *string `json:"iparangetype,omitempty"`
   
@@ -28604,6 +30134,12 @@ Description
 
     */
     Description *string `json:"description,omitempty"`
+  
+    /*
+Domain resolution order
+colon-separated list of domains used for short name qualification
+    */
+    Ipadomainresolutionorder *string `json:"ipadomainresolutionorder,omitempty"`
   
     /*
 
@@ -29099,6 +30635,12 @@ Description
 
     */
     Description *string `json:"description,omitempty"`
+  
+    /*
+Domain resolution order
+colon-separated list of domains used for short name qualification
+    */
+    Ipadomainresolutionorder *string `json:"ipadomainresolutionorder,omitempty"`
   
     /*
 
@@ -30141,7 +31683,7 @@ type LocationAddArgs struct {
 Location name
 IPA location name
     */
-    Idnsname string `json:"idnsname,omitempty"`
+    Idnsname interface{} `json:"idnsname,omitempty"`
   }
 
 type LocationAddOptionalArgs struct {
@@ -30214,7 +31756,7 @@ User-friendly description of action performed
 The primary_key value of the entry, e.g. 'jdoe' for a user
     (required)
     */
-    Value string `json:"value,omitempty"`
+    Value interface{} `json:"value,omitempty"`
   }
 
 func (t *LocationAddResult) String() string {
@@ -30272,7 +31814,7 @@ type LocationDelArgs struct {
 Location name
 IPA location name
     */
-    Idnsname []string `json:"idnsname,omitempty"`
+    Idnsname []interface{} `json:"idnsname,omitempty"`
   }
 
 type LocationDelOptionalArgs struct {
@@ -30319,7 +31861,7 @@ List of deletions that failed
 
     (required)
     */
-    Value []string `json:"value,omitempty"`
+    Value []interface{} `json:"value,omitempty"`
   }
 
 func (t *LocationDelResult) String() string {
@@ -30381,7 +31923,7 @@ type LocationFindOptionalArgs struct {
 Location name
 IPA location name
     */
-    Idnsname *string `json:"idnsname,omitempty"`
+    Idnsname *interface{} `json:"idnsname,omitempty"`
   
     /*
 Description
@@ -30519,7 +32061,7 @@ type LocationModArgs struct {
 Location name
 IPA location name
     */
-    Idnsname string `json:"idnsname,omitempty"`
+    Idnsname interface{} `json:"idnsname,omitempty"`
   }
 
 type LocationModOptionalArgs struct {
@@ -30605,7 +32147,7 @@ User-friendly description of action performed
 The primary_key value of the entry, e.g. 'jdoe' for a user
     (required)
     */
-    Value string `json:"value,omitempty"`
+    Value interface{} `json:"value,omitempty"`
   }
 
 func (t *LocationModResult) String() string {
@@ -30663,7 +32205,7 @@ type LocationShowArgs struct {
 Location name
 IPA location name
     */
-    Idnsname string `json:"idnsname,omitempty"`
+    Idnsname interface{} `json:"idnsname,omitempty"`
   }
 
 type LocationShowOptionalArgs struct {
@@ -30722,7 +32264,7 @@ User-friendly description of action performed
 The primary_key value of the entry, e.g. 'jdoe' for a user
     (required)
     */
-    Value string `json:"value,omitempty"`
+    Value interface{} `json:"value,omitempty"`
   
     /*
 Servers in location
@@ -35486,31 +37028,32 @@ func (t *PingResult) String() string {
 }
 
 /*
-Enable or Disable Anonymous PKINIT.
+Report PKINIT status on the IPA masters
 */
-func (c *Client) PkinitAnonymous(
-  reqArgs *PkinitAnonymousArgs,
-  optArgs *PkinitAnonymousOptionalArgs, // can be nil
-) (*PkinitAnonymousResult, error) {
+func (c *Client) PkinitStatus(
+  criteria string, // A string searched in all relevant object attributes
+  reqArgs *PkinitStatusArgs,
+  optArgs *PkinitStatusOptionalArgs, // can be nil
+) (*PkinitStatusResult, error) {
   if reqArgs == nil {
     return nil, fmt.Errorf("reqArgs cannot be nil")
   }
-  kwp := pkinitAnonymousKwParams{
-    PkinitAnonymousArgs: reqArgs,
-    PkinitAnonymousOptionalArgs: optArgs,
+  kwp := pkinitStatusKwParams{
+    PkinitStatusArgs: reqArgs,
+    PkinitStatusOptionalArgs: optArgs,
     Version: apiVersion,
   }
   req := request{
-    Method: "pkinit_anonymous",
+    Method: "pkinit_status",
     Params: []interface{}{
-      []interface{}{}, &kwp},
+      []interface{}{criteria, }, &kwp},
   }
   readCloser, e := c.exec(&req)
   if e != nil {
     return nil, e
   }
   defer readCloser.Close()
-  var res pkinitAnonymousResponse
+  var res pkinitStatusResponse
 	if e := json.NewDecoder(readCloser).Decode(&res); e != nil {
 		return nil, e
 	}
@@ -35523,21 +37066,51 @@ func (c *Client) PkinitAnonymous(
   return res.Result, nil
 }
 
-type PkinitAnonymousArgs struct {
+type PkinitStatusArgs struct {
+  }
+
+type PkinitStatusOptionalArgs struct {
+  
+    /*
+Server name
+IPA server hostname
+    */
+    ServerServer *string `json:"server_server,omitempty"`
+  
+    /*
+PKINIT status
+Whether PKINIT is enabled or disabled
+    */
+    Status *string `json:"status,omitempty"`
+  
+    /*
+Time Limit
+Time limit of search in seconds (0 is unlimited)
+    */
+    Timelimit *int `json:"timelimit,omitempty"`
+  
+    /*
+Size Limit
+Maximum number of entries returned (0 is unlimited)
+    */
+    Sizelimit *int `json:"sizelimit,omitempty"`
   
     /*
 
-
+Retrieve and print all attributes from the server. Affects command output.
     */
-    Action string `json:"action,omitempty"`
+    All *bool `json:"all,omitempty"`
+  
+    /*
+
+Print entries as stored on the server. Only affects output format.
+    */
+    Raw *bool `json:"raw,omitempty"`
   }
 
-type PkinitAnonymousOptionalArgs struct {
-  }
-
-type pkinitAnonymousKwParams struct {
-  *PkinitAnonymousArgs
-  *PkinitAnonymousOptionalArgs
+type pkinitStatusKwParams struct {
+  *PkinitStatusArgs
+  *PkinitStatusOptionalArgs
 
   /*
   Automatically set.
@@ -35546,30 +37119,48 @@ type pkinitAnonymousKwParams struct {
   Version string `json:"version"`
 }
 
-type pkinitAnonymousResponse struct {
+type pkinitStatusResponse struct {
 	Error  *Error      `json:"error"`
-	Result *PkinitAnonymousResult `json:"result"`
+	Result *PkinitStatusResult `json:"result"`
 }
 
-type PkinitAnonymousResult struct {
+type PkinitStatusResult struct {
   
+  
+    /*
+User-friendly description of action performed
+    (optional)
+    */
+    Summary *string `json:"summary,omitempty"`
   
     /*
 
     (required)
     */
-    Result interface{} `json:"result,omitempty"`
+    Result []interface{} `json:"result,omitempty"`
+  
+    /*
+Number of entries returned
+    (required)
+    */
+    Count int `json:"count,omitempty"`
+  
+    /*
+True if not all results were returned
+    (required)
+    */
+    Truncated bool `json:"truncated,omitempty"`
   }
 
-func (t *PkinitAnonymousResult) String() string {
+func (t *PkinitStatusResult) String() string {
   if t == nil {
     return "<nil>"
   }
   b, e := json.Marshal(t)
   if e != nil {
-    return fmt.Sprintf("PkinitAnonymousResult[failed json.Marshal: %v]", e)
+    return fmt.Sprintf("PkinitStatusResult[failed json.Marshal: %v]", e)
   }
-  return fmt.Sprintf("PkinitAnonymousResult%v", string(b))
+  return fmt.Sprintf("PkinitStatusResult%v", string(b))
 }
 
 /*
@@ -37667,7 +39258,7 @@ RADIUS proxy server name
 Server
 The hostname or IP (with or without port)
     */
-    Ipatokenradiusserver []string `json:"ipatokenradiusserver,omitempty"`
+    Ipatokenradiusserver string `json:"ipatokenradiusserver,omitempty"`
   
     /*
 Secret
@@ -37943,7 +39534,7 @@ A description of this RADIUS proxy server
 Server
 The hostname or IP (with or without port)
     */
-    Ipatokenradiusserver *[]string `json:"ipatokenradiusserver,omitempty"`
+    Ipatokenradiusserver *string `json:"ipatokenradiusserver,omitempty"`
   
     /*
 Secret
@@ -38114,7 +39705,7 @@ A description of this RADIUS proxy server
 Server
 The hostname or IP (with or without port)
     */
-    Ipatokenradiusserver *[]string `json:"ipatokenradiusserver,omitempty"`
+    Ipatokenradiusserver *string `json:"ipatokenradiusserver,omitempty"`
   
     /*
 Secret
@@ -42316,13 +43907,13 @@ Search for servers without these managed suffixes.
 location
 Search for servers with these ipa locations.
     */
-    InLocation *[]string `json:"in_location,omitempty"`
+    InLocation *[]interface{} `json:"in_location,omitempty"`
   
     /*
 location
 Search for servers without these ipa locations.
     */
-    NotInLocation *[]string `json:"not_in_location,omitempty"`
+    NotInLocation *[]interface{} `json:"not_in_location,omitempty"`
   
     /*
 role
@@ -42439,7 +44030,7 @@ type ServerModOptionalArgs struct {
 Location
 Server location
     */
-    IpalocationLocation *string `json:"ipalocation_location,omitempty"`
+    IpalocationLocation *interface{} `json:"ipalocation_location,omitempty"`
   
     /*
 Service weight
@@ -42615,6 +44206,12 @@ Size Limit
 Maximum number of entries returned (0 is unlimited)
     */
     Sizelimit *int `json:"sizelimit,omitempty"`
+  
+    /*
+
+Include IPA master entries
+    */
+    IncludeMaster *bool `json:"include_master,omitempty"`
   
     /*
 
@@ -42925,6 +44522,111 @@ func (t *ServerShowResult) String() string {
 }
 
 /*
+Set enabled/hidden state of a server.
+*/
+func (c *Client) ServerState(
+  reqArgs *ServerStateArgs,
+  optArgs *ServerStateOptionalArgs, // can be nil
+) (*ServerStateResult, error) {
+  if reqArgs == nil {
+    return nil, fmt.Errorf("reqArgs cannot be nil")
+  }
+  kwp := serverStateKwParams{
+    ServerStateArgs: reqArgs,
+    ServerStateOptionalArgs: optArgs,
+    Version: apiVersion,
+  }
+  req := request{
+    Method: "server_state",
+    Params: []interface{}{
+      []interface{}{}, &kwp},
+  }
+  readCloser, e := c.exec(&req)
+  if e != nil {
+    return nil, e
+  }
+  defer readCloser.Close()
+  var res serverStateResponse
+	if e := json.NewDecoder(readCloser).Decode(&res); e != nil {
+		return nil, e
+	}
+	if res.Error != nil {
+		return nil, res.Error
+	}
+  if res.Result == nil {
+    return nil, fmt.Errorf("missing result in response")
+  }
+  return res.Result, nil
+}
+
+type ServerStateArgs struct {
+  
+    /*
+Server name
+IPA server hostname
+    */
+    Cn string `json:"cn,omitempty"`
+  
+    /*
+State
+Server state
+    */
+    State string `json:"state,omitempty"`
+  }
+
+type ServerStateOptionalArgs struct {
+  }
+
+type serverStateKwParams struct {
+  *ServerStateArgs
+  *ServerStateOptionalArgs
+
+  /*
+  Automatically set.
+  Used by the server to determine whether to accept the request.
+  */
+  Version string `json:"version"`
+}
+
+type serverStateResponse struct {
+	Error  *Error      `json:"error"`
+	Result *ServerStateResult `json:"result"`
+}
+
+type ServerStateResult struct {
+  
+  
+    /*
+User-friendly description of action performed
+    (optional)
+    */
+    Summary *string `json:"summary,omitempty"`
+  
+    /*
+True means the operation was successful
+    (required)
+    */
+    Result bool `json:"result,omitempty"`
+  
+    /*
+The primary_key value of the entry, e.g. 'jdoe' for a user
+    (required)
+    */
+    Value string `json:"value,omitempty"`
+  }
+
+func (t *ServerStateResult) String() string {
+  if t == nil {
+    return "<nil>"
+  }
+  b, e := json.Marshal(t)
+  if e != nil {
+    return fmt.Sprintf("ServerStateResult[failed json.Marshal: %v]", e)
+  }
+  return fmt.Sprintf("ServerStateResult%v", string(b))
+}
+
+/*
 Add a new IPA service.
 */
 func (c *Client) ServiceAdd(
@@ -42977,7 +44679,7 @@ type ServiceAddOptionalArgs struct {
 Certificate
 Base-64 encoded service certificate
     */
-    Usercertificate *[]string `json:"usercertificate,omitempty"`
+    Usercertificate *[]interface{} `json:"usercertificate,omitempty"`
   
     /*
 PAC type
@@ -43147,7 +44849,7 @@ Service principal
 Certificate
 Base-64 encoded service certificate
     */
-    Usercertificate []string `json:"usercertificate,omitempty"`
+    Usercertificate []interface{} `json:"usercertificate,omitempty"`
   }
 
 type ServiceAddCertOptionalArgs struct {
@@ -44465,7 +46167,7 @@ Service principal alias
 Certificate
 Base-64 encoded service certificate
     */
-    Usercertificate *[]string `json:"usercertificate,omitempty"`
+    Usercertificate *[]interface{} `json:"usercertificate,omitempty"`
   
     /*
 PAC type
@@ -44642,7 +46344,7 @@ Service principal
 Certificate
 Base-64 encoded service certificate
     */
-    Usercertificate []string `json:"usercertificate,omitempty"`
+    Usercertificate []interface{} `json:"usercertificate,omitempty"`
   }
 
 type ServiceRemoveCertOptionalArgs struct {
@@ -47189,6 +48891,12 @@ Kerberos principal expiration
     Krbprincipalexpiration *time.Time `json:"krbprincipalexpiration,omitempty"`
   
     /*
+User password expiration
+
+    */
+    Krbpasswordexpiration *time.Time `json:"krbpasswordexpiration,omitempty"`
+  
+    /*
 Email address
 
     */
@@ -47348,7 +49056,7 @@ Preferred Language
 Certificate
 Base-64 encoded user certificate
     */
-    Usercertificate *[]string `json:"usercertificate,omitempty"`
+    Usercertificate *[]interface{} `json:"usercertificate,omitempty"`
   
     /*
 
@@ -47436,6 +49144,265 @@ func (t *StageuserAddResult) String() string {
     return fmt.Sprintf("StageuserAddResult[failed json.Marshal: %v]", e)
   }
   return fmt.Sprintf("StageuserAddResult%v", string(b))
+}
+
+/*
+Add one or more certificates to the stageuser entry
+*/
+func (c *Client) StageuserAddCert(
+  reqArgs *StageuserAddCertArgs,
+  optArgs *StageuserAddCertOptionalArgs, // can be nil
+) (*StageuserAddCertResult, error) {
+  if reqArgs == nil {
+    return nil, fmt.Errorf("reqArgs cannot be nil")
+  }
+  kwp := stageuserAddCertKwParams{
+    StageuserAddCertArgs: reqArgs,
+    StageuserAddCertOptionalArgs: optArgs,
+    Version: apiVersion,
+  }
+  req := request{
+    Method: "stageuser_add_cert",
+    Params: []interface{}{
+      []interface{}{}, &kwp},
+  }
+  readCloser, e := c.exec(&req)
+  if e != nil {
+    return nil, e
+  }
+  defer readCloser.Close()
+  var res stageuserAddCertResponse
+	if e := json.NewDecoder(readCloser).Decode(&res); e != nil {
+		return nil, e
+	}
+	if res.Error != nil {
+		return nil, res.Error
+	}
+  if res.Result == nil {
+    return nil, fmt.Errorf("missing result in response")
+  }
+  return res.Result, nil
+}
+
+type StageuserAddCertArgs struct {
+  
+    /*
+Certificate
+Base-64 encoded user certificate
+    */
+    Usercertificate []interface{} `json:"usercertificate,omitempty"`
+  }
+
+type StageuserAddCertOptionalArgs struct {
+  
+    /*
+User login
+
+    */
+    UID *string `json:"uid,omitempty"`
+  
+    /*
+
+Retrieve and print all attributes from the server. Affects command output.
+    */
+    All *bool `json:"all,omitempty"`
+  
+    /*
+
+Print entries as stored on the server. Only affects output format.
+    */
+    Raw *bool `json:"raw,omitempty"`
+  
+    /*
+
+Suppress processing of membership attributes.
+    */
+    NoMembers *bool `json:"no_members,omitempty"`
+  }
+
+type stageuserAddCertKwParams struct {
+  *StageuserAddCertArgs
+  *StageuserAddCertOptionalArgs
+
+  /*
+  Automatically set.
+  Used by the server to determine whether to accept the request.
+  */
+  Version string `json:"version"`
+}
+
+type stageuserAddCertResponse struct {
+	Error  *Error      `json:"error"`
+	Result *StageuserAddCertResult `json:"result"`
+}
+
+type StageuserAddCertResult struct {
+  
+  
+    /*
+User-friendly description of action performed
+    (optional)
+    */
+    Summary *string `json:"summary,omitempty"`
+  
+    /*
+
+    (required)
+    */
+    Result interface{} `json:"result,omitempty"`
+  
+    /*
+The primary_key value of the entry, e.g. 'jdoe' for a user
+    (required)
+    */
+    Value string `json:"value,omitempty"`
+  }
+
+func (t *StageuserAddCertResult) String() string {
+  if t == nil {
+    return "<nil>"
+  }
+  b, e := json.Marshal(t)
+  if e != nil {
+    return fmt.Sprintf("StageuserAddCertResult[failed json.Marshal: %v]", e)
+  }
+  return fmt.Sprintf("StageuserAddCertResult%v", string(b))
+}
+
+/*
+Add one or more certificate mappings to the stage user entry.
+*/
+func (c *Client) StageuserAddCertmapdata(
+  ipacertmapdata string, // Certificate mapping data
+  reqArgs *StageuserAddCertmapdataArgs,
+  optArgs *StageuserAddCertmapdataOptionalArgs, // can be nil
+) (*StageuserAddCertmapdataResult, error) {
+  if reqArgs == nil {
+    return nil, fmt.Errorf("reqArgs cannot be nil")
+  }
+  kwp := stageuserAddCertmapdataKwParams{
+    StageuserAddCertmapdataArgs: reqArgs,
+    StageuserAddCertmapdataOptionalArgs: optArgs,
+    Version: apiVersion,
+  }
+  req := request{
+    Method: "stageuser_add_certmapdata",
+    Params: []interface{}{
+      []interface{}{ipacertmapdata, }, &kwp},
+  }
+  readCloser, e := c.exec(&req)
+  if e != nil {
+    return nil, e
+  }
+  defer readCloser.Close()
+  var res stageuserAddCertmapdataResponse
+	if e := json.NewDecoder(readCloser).Decode(&res); e != nil {
+		return nil, e
+	}
+	if res.Error != nil {
+		return nil, res.Error
+	}
+  if res.Result == nil {
+    return nil, fmt.Errorf("missing result in response")
+  }
+  return res.Result, nil
+}
+
+type StageuserAddCertmapdataArgs struct {
+  }
+
+type StageuserAddCertmapdataOptionalArgs struct {
+  
+    /*
+User login
+
+    */
+    UID *string `json:"uid,omitempty"`
+  
+    /*
+Issuer
+Issuer of the certificate
+    */
+    Issuer *string `json:"issuer,omitempty"`
+  
+    /*
+Subject
+Subject of the certificate
+    */
+    Subject *string `json:"subject,omitempty"`
+  
+    /*
+Certificate
+Base-64 encoded user certificate
+    */
+    Certificate *[]interface{} `json:"certificate,omitempty"`
+  
+    /*
+
+Retrieve and print all attributes from the server. Affects command output.
+    */
+    All *bool `json:"all,omitempty"`
+  
+    /*
+
+Print entries as stored on the server. Only affects output format.
+    */
+    Raw *bool `json:"raw,omitempty"`
+  
+    /*
+
+Suppress processing of membership attributes.
+    */
+    NoMembers *bool `json:"no_members,omitempty"`
+  }
+
+type stageuserAddCertmapdataKwParams struct {
+  *StageuserAddCertmapdataArgs
+  *StageuserAddCertmapdataOptionalArgs
+
+  /*
+  Automatically set.
+  Used by the server to determine whether to accept the request.
+  */
+  Version string `json:"version"`
+}
+
+type stageuserAddCertmapdataResponse struct {
+	Error  *Error      `json:"error"`
+	Result *StageuserAddCertmapdataResult `json:"result"`
+}
+
+type StageuserAddCertmapdataResult struct {
+  
+  
+    /*
+User-friendly description of action performed
+    (optional)
+    */
+    Summary *string `json:"summary,omitempty"`
+  
+    /*
+
+    (required)
+    */
+    Result interface{} `json:"result,omitempty"`
+  
+    /*
+The primary_key value of the entry, e.g. 'jdoe' for a user
+    (required)
+    */
+    Value string `json:"value,omitempty"`
+  }
+
+func (t *StageuserAddCertmapdataResult) String() string {
+  if t == nil {
+    return "<nil>"
+  }
+  b, e := json.Marshal(t)
+  if e != nil {
+    return fmt.Sprintf("StageuserAddCertmapdataResult[failed json.Marshal: %v]", e)
+  }
+  return fmt.Sprintf("StageuserAddCertmapdataResult%v", string(b))
 }
 
 /*
@@ -47559,6 +49526,129 @@ func (t *StageuserAddManagerResult) String() string {
     return fmt.Sprintf("StageuserAddManagerResult[failed json.Marshal: %v]", e)
   }
   return fmt.Sprintf("StageuserAddManagerResult%v", string(b))
+}
+
+/*
+Add new principal alias to the stageuser entry
+*/
+func (c *Client) StageuserAddPrincipal(
+  reqArgs *StageuserAddPrincipalArgs,
+  optArgs *StageuserAddPrincipalOptionalArgs, // can be nil
+) (*StageuserAddPrincipalResult, error) {
+  if reqArgs == nil {
+    return nil, fmt.Errorf("reqArgs cannot be nil")
+  }
+  kwp := stageuserAddPrincipalKwParams{
+    StageuserAddPrincipalArgs: reqArgs,
+    StageuserAddPrincipalOptionalArgs: optArgs,
+    Version: apiVersion,
+  }
+  req := request{
+    Method: "stageuser_add_principal",
+    Params: []interface{}{
+      []interface{}{}, &kwp},
+  }
+  readCloser, e := c.exec(&req)
+  if e != nil {
+    return nil, e
+  }
+  defer readCloser.Close()
+  var res stageuserAddPrincipalResponse
+	if e := json.NewDecoder(readCloser).Decode(&res); e != nil {
+		return nil, e
+	}
+	if res.Error != nil {
+		return nil, res.Error
+	}
+  if res.Result == nil {
+    return nil, fmt.Errorf("missing result in response")
+  }
+  return res.Result, nil
+}
+
+type StageuserAddPrincipalArgs struct {
+  }
+
+type StageuserAddPrincipalOptionalArgs struct {
+  
+    /*
+User login
+
+    */
+    UID *string `json:"uid,omitempty"`
+  
+    /*
+Principal alias
+
+    */
+    Krbprincipalname *[]string `json:"krbprincipalname,omitempty"`
+  
+    /*
+
+Retrieve and print all attributes from the server. Affects command output.
+    */
+    All *bool `json:"all,omitempty"`
+  
+    /*
+
+Print entries as stored on the server. Only affects output format.
+    */
+    Raw *bool `json:"raw,omitempty"`
+  
+    /*
+
+Suppress processing of membership attributes.
+    */
+    NoMembers *bool `json:"no_members,omitempty"`
+  }
+
+type stageuserAddPrincipalKwParams struct {
+  *StageuserAddPrincipalArgs
+  *StageuserAddPrincipalOptionalArgs
+
+  /*
+  Automatically set.
+  Used by the server to determine whether to accept the request.
+  */
+  Version string `json:"version"`
+}
+
+type stageuserAddPrincipalResponse struct {
+	Error  *Error      `json:"error"`
+	Result *StageuserAddPrincipalResult `json:"result"`
+}
+
+type StageuserAddPrincipalResult struct {
+  
+  
+    /*
+User-friendly description of action performed
+    (optional)
+    */
+    Summary *string `json:"summary,omitempty"`
+  
+    /*
+
+    (required)
+    */
+    Result interface{} `json:"result,omitempty"`
+  
+    /*
+The primary_key value of the entry, e.g. 'jdoe' for a user
+    (required)
+    */
+    Value string `json:"value,omitempty"`
+  }
+
+func (t *StageuserAddPrincipalResult) String() string {
+  if t == nil {
+    return "<nil>"
+  }
+  b, e := json.Marshal(t)
+  if e != nil {
+    return fmt.Sprintf("StageuserAddPrincipalResult[failed json.Marshal: %v]", e)
+  }
+  return fmt.Sprintf("StageuserAddPrincipalResult%v", string(b))
 }
 
 /*
@@ -47777,6 +49867,12 @@ Kerberos principal expiration
     Krbprincipalexpiration *time.Time `json:"krbprincipalexpiration,omitempty"`
   
     /*
+User password expiration
+
+    */
+    Krbpasswordexpiration *time.Time `json:"krbpasswordexpiration,omitempty"`
+  
+    /*
 Email address
 
     */
@@ -47924,7 +50020,7 @@ Preferred Language
 Certificate
 Base-64 encoded user certificate
     */
-    Usercertificate *[]string `json:"usercertificate,omitempty"`
+    Usercertificate *[]interface{} `json:"usercertificate,omitempty"`
   
     /*
 Time Limit
@@ -48188,6 +50284,12 @@ Kerberos principal expiration
     Krbprincipalexpiration *time.Time `json:"krbprincipalexpiration,omitempty"`
   
     /*
+User password expiration
+
+    */
+    Krbpasswordexpiration *time.Time `json:"krbpasswordexpiration,omitempty"`
+  
+    /*
 Email address
 
     */
@@ -48347,7 +50449,7 @@ Preferred Language
 Certificate
 Base-64 encoded user certificate
     */
-    Usercertificate *[]string `json:"usercertificate,omitempty"`
+    Usercertificate *[]interface{} `json:"usercertificate,omitempty"`
   
     /*
 
@@ -48448,6 +50550,265 @@ func (t *StageuserModResult) String() string {
     return fmt.Sprintf("StageuserModResult[failed json.Marshal: %v]", e)
   }
   return fmt.Sprintf("StageuserModResult%v", string(b))
+}
+
+/*
+Remove one or more certificates to the stageuser entry
+*/
+func (c *Client) StageuserRemoveCert(
+  reqArgs *StageuserRemoveCertArgs,
+  optArgs *StageuserRemoveCertOptionalArgs, // can be nil
+) (*StageuserRemoveCertResult, error) {
+  if reqArgs == nil {
+    return nil, fmt.Errorf("reqArgs cannot be nil")
+  }
+  kwp := stageuserRemoveCertKwParams{
+    StageuserRemoveCertArgs: reqArgs,
+    StageuserRemoveCertOptionalArgs: optArgs,
+    Version: apiVersion,
+  }
+  req := request{
+    Method: "stageuser_remove_cert",
+    Params: []interface{}{
+      []interface{}{}, &kwp},
+  }
+  readCloser, e := c.exec(&req)
+  if e != nil {
+    return nil, e
+  }
+  defer readCloser.Close()
+  var res stageuserRemoveCertResponse
+	if e := json.NewDecoder(readCloser).Decode(&res); e != nil {
+		return nil, e
+	}
+	if res.Error != nil {
+		return nil, res.Error
+	}
+  if res.Result == nil {
+    return nil, fmt.Errorf("missing result in response")
+  }
+  return res.Result, nil
+}
+
+type StageuserRemoveCertArgs struct {
+  
+    /*
+Certificate
+Base-64 encoded user certificate
+    */
+    Usercertificate []interface{} `json:"usercertificate,omitempty"`
+  }
+
+type StageuserRemoveCertOptionalArgs struct {
+  
+    /*
+User login
+
+    */
+    UID *string `json:"uid,omitempty"`
+  
+    /*
+
+Retrieve and print all attributes from the server. Affects command output.
+    */
+    All *bool `json:"all,omitempty"`
+  
+    /*
+
+Print entries as stored on the server. Only affects output format.
+    */
+    Raw *bool `json:"raw,omitempty"`
+  
+    /*
+
+Suppress processing of membership attributes.
+    */
+    NoMembers *bool `json:"no_members,omitempty"`
+  }
+
+type stageuserRemoveCertKwParams struct {
+  *StageuserRemoveCertArgs
+  *StageuserRemoveCertOptionalArgs
+
+  /*
+  Automatically set.
+  Used by the server to determine whether to accept the request.
+  */
+  Version string `json:"version"`
+}
+
+type stageuserRemoveCertResponse struct {
+	Error  *Error      `json:"error"`
+	Result *StageuserRemoveCertResult `json:"result"`
+}
+
+type StageuserRemoveCertResult struct {
+  
+  
+    /*
+User-friendly description of action performed
+    (optional)
+    */
+    Summary *string `json:"summary,omitempty"`
+  
+    /*
+
+    (required)
+    */
+    Result interface{} `json:"result,omitempty"`
+  
+    /*
+The primary_key value of the entry, e.g. 'jdoe' for a user
+    (required)
+    */
+    Value string `json:"value,omitempty"`
+  }
+
+func (t *StageuserRemoveCertResult) String() string {
+  if t == nil {
+    return "<nil>"
+  }
+  b, e := json.Marshal(t)
+  if e != nil {
+    return fmt.Sprintf("StageuserRemoveCertResult[failed json.Marshal: %v]", e)
+  }
+  return fmt.Sprintf("StageuserRemoveCertResult%v", string(b))
+}
+
+/*
+Remove one or more certificate mappings from the stage user entry.
+*/
+func (c *Client) StageuserRemoveCertmapdata(
+  ipacertmapdata string, // Certificate mapping data
+  reqArgs *StageuserRemoveCertmapdataArgs,
+  optArgs *StageuserRemoveCertmapdataOptionalArgs, // can be nil
+) (*StageuserRemoveCertmapdataResult, error) {
+  if reqArgs == nil {
+    return nil, fmt.Errorf("reqArgs cannot be nil")
+  }
+  kwp := stageuserRemoveCertmapdataKwParams{
+    StageuserRemoveCertmapdataArgs: reqArgs,
+    StageuserRemoveCertmapdataOptionalArgs: optArgs,
+    Version: apiVersion,
+  }
+  req := request{
+    Method: "stageuser_remove_certmapdata",
+    Params: []interface{}{
+      []interface{}{ipacertmapdata, }, &kwp},
+  }
+  readCloser, e := c.exec(&req)
+  if e != nil {
+    return nil, e
+  }
+  defer readCloser.Close()
+  var res stageuserRemoveCertmapdataResponse
+	if e := json.NewDecoder(readCloser).Decode(&res); e != nil {
+		return nil, e
+	}
+	if res.Error != nil {
+		return nil, res.Error
+	}
+  if res.Result == nil {
+    return nil, fmt.Errorf("missing result in response")
+  }
+  return res.Result, nil
+}
+
+type StageuserRemoveCertmapdataArgs struct {
+  }
+
+type StageuserRemoveCertmapdataOptionalArgs struct {
+  
+    /*
+User login
+
+    */
+    UID *string `json:"uid,omitempty"`
+  
+    /*
+Issuer
+Issuer of the certificate
+    */
+    Issuer *string `json:"issuer,omitempty"`
+  
+    /*
+Subject
+Subject of the certificate
+    */
+    Subject *string `json:"subject,omitempty"`
+  
+    /*
+Certificate
+Base-64 encoded user certificate
+    */
+    Certificate *[]interface{} `json:"certificate,omitempty"`
+  
+    /*
+
+Retrieve and print all attributes from the server. Affects command output.
+    */
+    All *bool `json:"all,omitempty"`
+  
+    /*
+
+Print entries as stored on the server. Only affects output format.
+    */
+    Raw *bool `json:"raw,omitempty"`
+  
+    /*
+
+Suppress processing of membership attributes.
+    */
+    NoMembers *bool `json:"no_members,omitempty"`
+  }
+
+type stageuserRemoveCertmapdataKwParams struct {
+  *StageuserRemoveCertmapdataArgs
+  *StageuserRemoveCertmapdataOptionalArgs
+
+  /*
+  Automatically set.
+  Used by the server to determine whether to accept the request.
+  */
+  Version string `json:"version"`
+}
+
+type stageuserRemoveCertmapdataResponse struct {
+	Error  *Error      `json:"error"`
+	Result *StageuserRemoveCertmapdataResult `json:"result"`
+}
+
+type StageuserRemoveCertmapdataResult struct {
+  
+  
+    /*
+User-friendly description of action performed
+    (optional)
+    */
+    Summary *string `json:"summary,omitempty"`
+  
+    /*
+
+    (required)
+    */
+    Result interface{} `json:"result,omitempty"`
+  
+    /*
+The primary_key value of the entry, e.g. 'jdoe' for a user
+    (required)
+    */
+    Value string `json:"value,omitempty"`
+  }
+
+func (t *StageuserRemoveCertmapdataResult) String() string {
+  if t == nil {
+    return "<nil>"
+  }
+  b, e := json.Marshal(t)
+  if e != nil {
+    return fmt.Sprintf("StageuserRemoveCertmapdataResult[failed json.Marshal: %v]", e)
+  }
+  return fmt.Sprintf("StageuserRemoveCertmapdataResult%v", string(b))
 }
 
 /*
@@ -48571,6 +50932,129 @@ func (t *StageuserRemoveManagerResult) String() string {
     return fmt.Sprintf("StageuserRemoveManagerResult[failed json.Marshal: %v]", e)
   }
   return fmt.Sprintf("StageuserRemoveManagerResult%v", string(b))
+}
+
+/*
+Remove principal alias from the stageuser entry
+*/
+func (c *Client) StageuserRemovePrincipal(
+  reqArgs *StageuserRemovePrincipalArgs,
+  optArgs *StageuserRemovePrincipalOptionalArgs, // can be nil
+) (*StageuserRemovePrincipalResult, error) {
+  if reqArgs == nil {
+    return nil, fmt.Errorf("reqArgs cannot be nil")
+  }
+  kwp := stageuserRemovePrincipalKwParams{
+    StageuserRemovePrincipalArgs: reqArgs,
+    StageuserRemovePrincipalOptionalArgs: optArgs,
+    Version: apiVersion,
+  }
+  req := request{
+    Method: "stageuser_remove_principal",
+    Params: []interface{}{
+      []interface{}{}, &kwp},
+  }
+  readCloser, e := c.exec(&req)
+  if e != nil {
+    return nil, e
+  }
+  defer readCloser.Close()
+  var res stageuserRemovePrincipalResponse
+	if e := json.NewDecoder(readCloser).Decode(&res); e != nil {
+		return nil, e
+	}
+	if res.Error != nil {
+		return nil, res.Error
+	}
+  if res.Result == nil {
+    return nil, fmt.Errorf("missing result in response")
+  }
+  return res.Result, nil
+}
+
+type StageuserRemovePrincipalArgs struct {
+  }
+
+type StageuserRemovePrincipalOptionalArgs struct {
+  
+    /*
+User login
+
+    */
+    UID *string `json:"uid,omitempty"`
+  
+    /*
+Principal alias
+
+    */
+    Krbprincipalname *[]string `json:"krbprincipalname,omitempty"`
+  
+    /*
+
+Retrieve and print all attributes from the server. Affects command output.
+    */
+    All *bool `json:"all,omitempty"`
+  
+    /*
+
+Print entries as stored on the server. Only affects output format.
+    */
+    Raw *bool `json:"raw,omitempty"`
+  
+    /*
+
+Suppress processing of membership attributes.
+    */
+    NoMembers *bool `json:"no_members,omitempty"`
+  }
+
+type stageuserRemovePrincipalKwParams struct {
+  *StageuserRemovePrincipalArgs
+  *StageuserRemovePrincipalOptionalArgs
+
+  /*
+  Automatically set.
+  Used by the server to determine whether to accept the request.
+  */
+  Version string `json:"version"`
+}
+
+type stageuserRemovePrincipalResponse struct {
+	Error  *Error      `json:"error"`
+	Result *StageuserRemovePrincipalResult `json:"result"`
+}
+
+type StageuserRemovePrincipalResult struct {
+  
+  
+    /*
+User-friendly description of action performed
+    (optional)
+    */
+    Summary *string `json:"summary,omitempty"`
+  
+    /*
+
+    (required)
+    */
+    Result interface{} `json:"result,omitempty"`
+  
+    /*
+The primary_key value of the entry, e.g. 'jdoe' for a user
+    (required)
+    */
+    Value string `json:"value,omitempty"`
+  }
+
+func (t *StageuserRemovePrincipalResult) String() string {
+  if t == nil {
+    return "<nil>"
+  }
+  b, e := json.Marshal(t)
+  if e != nil {
+    return fmt.Sprintf("StageuserRemovePrincipalResult[failed json.Marshal: %v]", e)
+  }
+  return fmt.Sprintf("StageuserRemovePrincipalResult%v", string(b))
 }
 
 /*
@@ -52026,6 +54510,12 @@ Print entries as stored on the server. Only affects output format.
 Suppress processing of membership attributes.
     */
     NoMembers *bool `json:"no_members,omitempty"`
+  
+    /*
+Rename
+Rename the sudo rule object
+    */
+    Rename *string `json:"rename,omitempty"`
   }
 
 type sudoruleModKwParams struct {
@@ -54970,6 +57460,11 @@ Only trusts to Active Directory domains are supported right now.
 The command can be safely run multiple times against the same domain,
 this will cause change to trust relationship credentials on both
 sides.
+
+Note that if the command was previously run with a specific range type,
+or with automatic detection of the range type, and you want to configure a
+different range type, you may need to delete first the ID range using
+ipa idrange-del before retrying the command with the desired range type.
 */
 func (c *Client) TrustAdd(
   reqArgs *TrustAddArgs,
@@ -55075,7 +57570,7 @@ Size of the ID range reserved for the trusted domain
   
     /*
 Range type
-Type of trusted domain ID range, one of ipa-ad-trust-posix, ipa-ad-trust
+Type of trusted domain ID range, one of ipa-ad-trust, ipa-ad-trust-posix
     */
     RangeType *string `json:"range_type,omitempty"`
   
@@ -55312,6 +57807,18 @@ Rights
 Display the access rights of this entry (requires --all). See ipa man page for details.
     */
     Rights *bool `json:"rights,omitempty"`
+  
+    /*
+Active Directory domain administrator
+
+    */
+    RealmAdmin *string `json:"realm_admin,omitempty"`
+  
+    /*
+Active Directory domain administrator's password
+
+    */
+    RealmPasswd *string `json:"realm_passwd,omitempty"`
   
     /*
 Domain controller for the Active Directory domain (optional)
@@ -55610,6 +58117,12 @@ SID blacklist outgoing
 
     */
     Ipantsidblacklistoutgoing *[]string `json:"ipantsidblacklistoutgoing,omitempty"`
+  
+    /*
+UPN suffixes
+
+    */
+    Ipantadditionalsuffixes *[]string `json:"ipantadditionalsuffixes,omitempty"`
   
     /*
 
@@ -57073,6 +59586,12 @@ Kerberos principal expiration
     Krbprincipalexpiration *time.Time `json:"krbprincipalexpiration,omitempty"`
   
     /*
+User password expiration
+
+    */
+    Krbpasswordexpiration *time.Time `json:"krbpasswordexpiration,omitempty"`
+  
+    /*
 Email address
 
     */
@@ -57232,7 +59751,7 @@ Preferred Language
 Certificate
 Base-64 encoded user certificate
     */
-    Usercertificate *[]string `json:"usercertificate,omitempty"`
+    Usercertificate *[]interface{} `json:"usercertificate,omitempty"`
   
     /*
 Account disabled
@@ -57372,7 +59891,7 @@ type UserAddCertArgs struct {
 Certificate
 Base-64 encoded user certificate
     */
-    Usercertificate []string `json:"usercertificate,omitempty"`
+    Usercertificate []interface{} `json:"usercertificate,omitempty"`
   }
 
 type UserAddCertOptionalArgs struct {
@@ -57449,6 +59968,142 @@ func (t *UserAddCertResult) String() string {
     return fmt.Sprintf("UserAddCertResult[failed json.Marshal: %v]", e)
   }
   return fmt.Sprintf("UserAddCertResult%v", string(b))
+}
+
+/*
+Add one or more certificate mappings to the user entry.
+*/
+func (c *Client) UserAddCertmapdata(
+  ipacertmapdata string, // Certificate mapping data
+  reqArgs *UserAddCertmapdataArgs,
+  optArgs *UserAddCertmapdataOptionalArgs, // can be nil
+) (*UserAddCertmapdataResult, error) {
+  if reqArgs == nil {
+    return nil, fmt.Errorf("reqArgs cannot be nil")
+  }
+  kwp := userAddCertmapdataKwParams{
+    UserAddCertmapdataArgs: reqArgs,
+    UserAddCertmapdataOptionalArgs: optArgs,
+    Version: apiVersion,
+  }
+  req := request{
+    Method: "user_add_certmapdata",
+    Params: []interface{}{
+      []interface{}{ipacertmapdata, }, &kwp},
+  }
+  readCloser, e := c.exec(&req)
+  if e != nil {
+    return nil, e
+  }
+  defer readCloser.Close()
+  var res userAddCertmapdataResponse
+	if e := json.NewDecoder(readCloser).Decode(&res); e != nil {
+		return nil, e
+	}
+	if res.Error != nil {
+		return nil, res.Error
+	}
+  if res.Result == nil {
+    return nil, fmt.Errorf("missing result in response")
+  }
+  return res.Result, nil
+}
+
+type UserAddCertmapdataArgs struct {
+  }
+
+type UserAddCertmapdataOptionalArgs struct {
+  
+    /*
+User login
+
+    */
+    UID *string `json:"uid,omitempty"`
+  
+    /*
+Issuer
+Issuer of the certificate
+    */
+    Issuer *string `json:"issuer,omitempty"`
+  
+    /*
+Subject
+Subject of the certificate
+    */
+    Subject *string `json:"subject,omitempty"`
+  
+    /*
+Certificate
+Base-64 encoded user certificate
+    */
+    Certificate *[]interface{} `json:"certificate,omitempty"`
+  
+    /*
+
+Retrieve and print all attributes from the server. Affects command output.
+    */
+    All *bool `json:"all,omitempty"`
+  
+    /*
+
+Print entries as stored on the server. Only affects output format.
+    */
+    Raw *bool `json:"raw,omitempty"`
+  
+    /*
+
+Suppress processing of membership attributes.
+    */
+    NoMembers *bool `json:"no_members,omitempty"`
+  }
+
+type userAddCertmapdataKwParams struct {
+  *UserAddCertmapdataArgs
+  *UserAddCertmapdataOptionalArgs
+
+  /*
+  Automatically set.
+  Used by the server to determine whether to accept the request.
+  */
+  Version string `json:"version"`
+}
+
+type userAddCertmapdataResponse struct {
+	Error  *Error      `json:"error"`
+	Result *UserAddCertmapdataResult `json:"result"`
+}
+
+type UserAddCertmapdataResult struct {
+  
+  
+    /*
+User-friendly description of action performed
+    (optional)
+    */
+    Summary *string `json:"summary,omitempty"`
+  
+    /*
+
+    (required)
+    */
+    Result interface{} `json:"result,omitempty"`
+  
+    /*
+The primary_key value of the entry, e.g. 'jdoe' for a user
+    (required)
+    */
+    Value string `json:"value,omitempty"`
+  }
+
+func (t *UserAddCertmapdataResult) String() string {
+  if t == nil {
+    return "<nil>"
+  }
+  b, e := json.Marshal(t)
+  if e != nil {
+    return fmt.Sprintf("UserAddCertmapdataResult[failed json.Marshal: %v]", e)
+  }
+  return fmt.Sprintf("UserAddCertmapdataResult%v", string(b))
 }
 
 /*
@@ -58117,6 +60772,12 @@ Kerberos principal expiration
     Krbprincipalexpiration *time.Time `json:"krbprincipalexpiration,omitempty"`
   
     /*
+User password expiration
+
+    */
+    Krbpasswordexpiration *time.Time `json:"krbpasswordexpiration,omitempty"`
+  
+    /*
 Email address
 
     */
@@ -58264,7 +60925,7 @@ Preferred Language
 Certificate
 Base-64 encoded user certificate
     */
-    Usercertificate *[]string `json:"usercertificate,omitempty"`
+    Usercertificate *[]interface{} `json:"usercertificate,omitempty"`
   
     /*
 Account disabled
@@ -58546,6 +61207,12 @@ Kerberos principal expiration
     Krbprincipalexpiration *time.Time `json:"krbprincipalexpiration,omitempty"`
   
     /*
+User password expiration
+
+    */
+    Krbpasswordexpiration *time.Time `json:"krbpasswordexpiration,omitempty"`
+  
+    /*
 Email address
 
     */
@@ -58705,7 +61372,7 @@ Preferred Language
 Certificate
 Base-64 encoded user certificate
     */
-    Usercertificate *[]string `json:"usercertificate,omitempty"`
+    Usercertificate *[]interface{} `json:"usercertificate,omitempty"`
   
     /*
 Account disabled
@@ -58858,7 +61525,7 @@ type UserRemoveCertArgs struct {
 Certificate
 Base-64 encoded user certificate
     */
-    Usercertificate []string `json:"usercertificate,omitempty"`
+    Usercertificate []interface{} `json:"usercertificate,omitempty"`
   }
 
 type UserRemoveCertOptionalArgs struct {
@@ -58935,6 +61602,142 @@ func (t *UserRemoveCertResult) String() string {
     return fmt.Sprintf("UserRemoveCertResult[failed json.Marshal: %v]", e)
   }
   return fmt.Sprintf("UserRemoveCertResult%v", string(b))
+}
+
+/*
+Remove one or more certificate mappings from the user entry.
+*/
+func (c *Client) UserRemoveCertmapdata(
+  ipacertmapdata string, // Certificate mapping data
+  reqArgs *UserRemoveCertmapdataArgs,
+  optArgs *UserRemoveCertmapdataOptionalArgs, // can be nil
+) (*UserRemoveCertmapdataResult, error) {
+  if reqArgs == nil {
+    return nil, fmt.Errorf("reqArgs cannot be nil")
+  }
+  kwp := userRemoveCertmapdataKwParams{
+    UserRemoveCertmapdataArgs: reqArgs,
+    UserRemoveCertmapdataOptionalArgs: optArgs,
+    Version: apiVersion,
+  }
+  req := request{
+    Method: "user_remove_certmapdata",
+    Params: []interface{}{
+      []interface{}{ipacertmapdata, }, &kwp},
+  }
+  readCloser, e := c.exec(&req)
+  if e != nil {
+    return nil, e
+  }
+  defer readCloser.Close()
+  var res userRemoveCertmapdataResponse
+	if e := json.NewDecoder(readCloser).Decode(&res); e != nil {
+		return nil, e
+	}
+	if res.Error != nil {
+		return nil, res.Error
+	}
+  if res.Result == nil {
+    return nil, fmt.Errorf("missing result in response")
+  }
+  return res.Result, nil
+}
+
+type UserRemoveCertmapdataArgs struct {
+  }
+
+type UserRemoveCertmapdataOptionalArgs struct {
+  
+    /*
+User login
+
+    */
+    UID *string `json:"uid,omitempty"`
+  
+    /*
+Issuer
+Issuer of the certificate
+    */
+    Issuer *string `json:"issuer,omitempty"`
+  
+    /*
+Subject
+Subject of the certificate
+    */
+    Subject *string `json:"subject,omitempty"`
+  
+    /*
+Certificate
+Base-64 encoded user certificate
+    */
+    Certificate *[]interface{} `json:"certificate,omitempty"`
+  
+    /*
+
+Retrieve and print all attributes from the server. Affects command output.
+    */
+    All *bool `json:"all,omitempty"`
+  
+    /*
+
+Print entries as stored on the server. Only affects output format.
+    */
+    Raw *bool `json:"raw,omitempty"`
+  
+    /*
+
+Suppress processing of membership attributes.
+    */
+    NoMembers *bool `json:"no_members,omitempty"`
+  }
+
+type userRemoveCertmapdataKwParams struct {
+  *UserRemoveCertmapdataArgs
+  *UserRemoveCertmapdataOptionalArgs
+
+  /*
+  Automatically set.
+  Used by the server to determine whether to accept the request.
+  */
+  Version string `json:"version"`
+}
+
+type userRemoveCertmapdataResponse struct {
+	Error  *Error      `json:"error"`
+	Result *UserRemoveCertmapdataResult `json:"result"`
+}
+
+type UserRemoveCertmapdataResult struct {
+  
+  
+    /*
+User-friendly description of action performed
+    (optional)
+    */
+    Summary *string `json:"summary,omitempty"`
+  
+    /*
+
+    (required)
+    */
+    Result interface{} `json:"result,omitempty"`
+  
+    /*
+The primary_key value of the entry, e.g. 'jdoe' for a user
+    (required)
+    */
+    Value string `json:"value,omitempty"`
+  }
+
+func (t *UserRemoveCertmapdataResult) String() string {
+  if t == nil {
+    return "<nil>"
+  }
+  b, e := json.Marshal(t)
+  if e != nil {
+    return fmt.Sprintf("UserRemoveCertmapdataResult[failed json.Marshal: %v]", e)
+  }
+  return fmt.Sprintf("UserRemoveCertmapdataResult%v", string(b))
 }
 
 /*
@@ -62114,6 +64917,99 @@ func (t *VaultcontainerShowResult) String() string {
   return fmt.Sprintf("VaultcontainerShowResult%v", string(b))
 }
 
+/*
+Describe currently authenticated identity.
+*/
+func (c *Client) Whoami(
+  reqArgs *WhoamiArgs,
+  optArgs *WhoamiOptionalArgs, // can be nil
+) (*WhoamiResult, error) {
+  if reqArgs == nil {
+    return nil, fmt.Errorf("reqArgs cannot be nil")
+  }
+  kwp := whoamiKwParams{
+    WhoamiArgs: reqArgs,
+    WhoamiOptionalArgs: optArgs,
+    Version: apiVersion,
+  }
+  req := request{
+    Method: "whoami",
+    Params: []interface{}{
+      []interface{}{}, &kwp},
+  }
+  readCloser, e := c.exec(&req)
+  if e != nil {
+    return nil, e
+  }
+  defer readCloser.Close()
+  var res whoamiResponse
+	if e := json.NewDecoder(readCloser).Decode(&res); e != nil {
+		return nil, e
+	}
+	if res.Error != nil {
+		return nil, res.Error
+	}
+  if res.Result == nil {
+    return nil, fmt.Errorf("missing result in response")
+  }
+  return res.Result, nil
+}
+
+type WhoamiArgs struct {
+  }
+
+type WhoamiOptionalArgs struct {
+  }
+
+type whoamiKwParams struct {
+  *WhoamiArgs
+  *WhoamiOptionalArgs
+
+  /*
+  Automatically set.
+  Used by the server to determine whether to accept the request.
+  */
+  Version string `json:"version"`
+}
+
+type whoamiResponse struct {
+	Error  *Error      `json:"error"`
+	Result *WhoamiResult `json:"result"`
+}
+
+type WhoamiResult struct {
+  
+  
+    /*
+Object class name
+    (required)
+    */
+    Object string `json:"object,omitempty"`
+  
+    /*
+Function to get details
+    (required)
+    */
+    Command string `json:"command,omitempty"`
+  
+    /*
+Arguments to details function
+    (required)
+    */
+    Arguments []interface{} `json:"arguments,omitempty"`
+  }
+
+func (t *WhoamiResult) String() string {
+  if t == nil {
+    return "<nil>"
+  }
+  b, e := json.Marshal(t)
+  if e != nil {
+    return fmt.Sprintf("WhoamiResult[failed json.Marshal: %v]", e)
+  }
+  return fmt.Sprintf("WhoamiResult%v", string(b))
+}
+
 
 
 type Aci struct {
@@ -63592,6 +66488,18 @@ Issuer DN
 Issuer Distinguished Name
     */
     Ipacaissuerdn string `json:"ipacaissuerdn,omitempty"`
+  
+    /*
+Certificate
+Base-64 encoded certificate.
+    */
+    Certificate string `json:"certificate,omitempty"`
+  
+    /*
+Certificate chain
+X.509 certificate chain
+    */
+    CertificateChain *[]string `json:"certificate_chain,omitempty"`
   }
 
 func (t *Ca) String() string {
@@ -63616,6 +66524,10 @@ type jsonCa struct {
     Ipacasubjectdn interface{} `json:"ipacasubjectdn"`
   
     Ipacaissuerdn interface{} `json:"ipacaissuerdn"`
+  
+    Certificate interface{} `json:"certificate"`
+  
+    CertificateChain interface{} `json:"certificate_chain"`
   }
 
 func (out *Ca) UnmarshalJSON(data []byte) error {
@@ -63801,6 +66713,74 @@ func (out *Ca) UnmarshalJSON(data []byte) error {
         
       } else {
         return fmt.Errorf("unexpected value for field Ipacaissuerdn: %v (%v)", raw, reflect.TypeOf(raw))
+      }
+    
+  }
+  
+  if true {
+    raw := in.Certificate
+    plainV, plainOk := raw.(string)
+    sliceWrapperV, sliceWrapperOk := raw.([]interface{})
+    var sliceV []string
+    sliceOk := sliceWrapperOk
+    if sliceWrapperOk {
+      for _, rawItem := range sliceWrapperV {
+        
+        itemV, itemOk := rawItem.(string)
+        
+        if !itemOk {
+          sliceOk = false
+          break
+        }
+        
+        sliceV = append(sliceV, itemV)
+        
+      }
+    }
+    
+      if plainOk {
+        out.Certificate = plainV
+      } else if sliceOk {
+        
+          if len(sliceV) != 1 {
+            return fmt.Errorf("unexpected value for field Certificate: %v; expected exactly one element", raw)
+          }
+          out.Certificate = sliceV[0]
+        
+      } else {
+        return fmt.Errorf("unexpected value for field Certificate: %v (%v)", raw, reflect.TypeOf(raw))
+      }
+    
+  }
+  
+  if in.CertificateChain != nil {
+    raw := in.CertificateChain
+    plainV, plainOk := raw.(string)
+    sliceWrapperV, sliceWrapperOk := raw.([]interface{})
+    var sliceV []string
+    sliceOk := sliceWrapperOk
+    if sliceWrapperOk {
+      for _, rawItem := range sliceWrapperV {
+        
+        itemV, itemOk := rawItem.(string)
+        
+        if !itemOk {
+          sliceOk = false
+          break
+        }
+        
+        sliceV = append(sliceV, itemV)
+        
+      }
+    }
+    
+      if plainOk {
+        out.CertificateChain = &[]string{plainV}
+      } else if sliceOk {
+        
+        out.CertificateChain = &sliceV
+      } else {
+        return fmt.Errorf("unexpected value for field CertificateChain: %v (%v)", raw, reflect.TypeOf(raw))
       }
     
   }
@@ -64518,7 +67498,13 @@ Name of issuing CA
 Certificate
 Base-64 encoded certificate.
     */
-    Certificate string `json:"certificate,omitempty"`
+    Certificate interface{} `json:"certificate,omitempty"`
+  
+    /*
+Certificate chain
+X.509 certificate chain
+    */
+    CertificateChain *[]string `json:"certificate_chain,omitempty"`
   
     /*
 Subject
@@ -64536,7 +67522,7 @@ Subject email address
 Subject DNS name
 
     */
-    SanDnsname *[]string `json:"san_dnsname,omitempty"`
+    SanDnsname *[]interface{} `json:"san_dnsname,omitempty"`
   
     /*
 Subject X.400 address
@@ -64611,16 +67597,16 @@ Not After
     ValidNotAfter time.Time `json:"valid_not_after,omitempty"`
   
     /*
-Fingerprint (MD5)
-
-    */
-    Md5Fingerprint string `json:"md5_fingerprint,omitempty"`
-  
-    /*
 Fingerprint (SHA1)
 
     */
     Sha1Fingerprint string `json:"sha1_fingerprint,omitempty"`
+  
+    /*
+Fingerprint (SHA256)
+
+    */
+    Sha256Fingerprint string `json:"sha256_fingerprint,omitempty"`
   
     /*
 Serial number
@@ -64666,7 +67652,7 @@ Owner host
   
     /*
 Owner service
-Service principal
+Service principal alias
     */
     OwnerService *[]string `json:"owner_service,omitempty"`
   }
@@ -64687,6 +67673,8 @@ type jsonCert struct {
     Cacn interface{} `json:"cacn"`
   
     Certificate interface{} `json:"certificate"`
+  
+    CertificateChain interface{} `json:"certificate_chain"`
   
     Subject interface{} `json:"subject"`
   
@@ -64718,9 +67706,9 @@ type jsonCert struct {
   
     ValidNotAfter interface{} `json:"valid_not_after"`
   
-    Md5Fingerprint interface{} `json:"md5_fingerprint"`
-  
     Sha1Fingerprint interface{} `json:"sha1_fingerprint"`
+  
+    Sha256Fingerprint interface{} `json:"sha256_fingerprint"`
   
     SerialNumber interface{} `json:"serial_number"`
   
@@ -64784,14 +67772,14 @@ func (out *Cert) UnmarshalJSON(data []byte) error {
   
   if true {
     raw := in.Certificate
-    plainV, plainOk := raw.(string)
+    plainV, plainOk := raw.(interface{})
     sliceWrapperV, sliceWrapperOk := raw.([]interface{})
-    var sliceV []string
+    var sliceV []interface{}
     sliceOk := sliceWrapperOk
     if sliceWrapperOk {
       for _, rawItem := range sliceWrapperV {
         
-        itemV, itemOk := rawItem.(string)
+        itemV, itemOk := rawItem.(interface{})
         
         if !itemOk {
           sliceOk = false
@@ -64814,6 +67802,38 @@ func (out *Cert) UnmarshalJSON(data []byte) error {
         
       } else {
         return fmt.Errorf("unexpected value for field Certificate: %v (%v)", raw, reflect.TypeOf(raw))
+      }
+    
+  }
+  
+  if in.CertificateChain != nil {
+    raw := in.CertificateChain
+    plainV, plainOk := raw.(string)
+    sliceWrapperV, sliceWrapperOk := raw.([]interface{})
+    var sliceV []string
+    sliceOk := sliceWrapperOk
+    if sliceWrapperOk {
+      for _, rawItem := range sliceWrapperV {
+        
+        itemV, itemOk := rawItem.(string)
+        
+        if !itemOk {
+          sliceOk = false
+          break
+        }
+        
+        sliceV = append(sliceV, itemV)
+        
+      }
+    }
+    
+      if plainOk {
+        out.CertificateChain = &[]string{plainV}
+      } else if sliceOk {
+        
+        out.CertificateChain = &sliceV
+      } else {
+        return fmt.Errorf("unexpected value for field CertificateChain: %v (%v)", raw, reflect.TypeOf(raw))
       }
     
   }
@@ -64888,14 +67908,14 @@ func (out *Cert) UnmarshalJSON(data []byte) error {
   
   if in.SanDnsname != nil {
     raw := in.SanDnsname
-    plainV, plainOk := raw.(string)
+    plainV, plainOk := raw.(interface{})
     sliceWrapperV, sliceWrapperOk := raw.([]interface{})
-    var sliceV []string
+    var sliceV []interface{}
     sliceOk := sliceWrapperOk
     if sliceWrapperOk {
       for _, rawItem := range sliceWrapperV {
         
-        itemV, itemOk := rawItem.(string)
+        itemV, itemOk := rawItem.(interface{})
         
         if !itemOk {
           sliceOk = false
@@ -64908,7 +67928,7 @@ func (out *Cert) UnmarshalJSON(data []byte) error {
     }
     
       if plainOk {
-        out.SanDnsname = &[]string{plainV}
+        out.SanDnsname = &[]interface{}{plainV}
       } else if sliceOk {
         
         out.SanDnsname = &sliceV
@@ -65315,42 +68335,6 @@ func (out *Cert) UnmarshalJSON(data []byte) error {
   }
   
   if true {
-    raw := in.Md5Fingerprint
-    plainV, plainOk := raw.(string)
-    sliceWrapperV, sliceWrapperOk := raw.([]interface{})
-    var sliceV []string
-    sliceOk := sliceWrapperOk
-    if sliceWrapperOk {
-      for _, rawItem := range sliceWrapperV {
-        
-        itemV, itemOk := rawItem.(string)
-        
-        if !itemOk {
-          sliceOk = false
-          break
-        }
-        
-        sliceV = append(sliceV, itemV)
-        
-      }
-    }
-    
-      if plainOk {
-        out.Md5Fingerprint = plainV
-      } else if sliceOk {
-        
-          if len(sliceV) != 1 {
-            return fmt.Errorf("unexpected value for field Md5Fingerprint: %v; expected exactly one element", raw)
-          }
-          out.Md5Fingerprint = sliceV[0]
-        
-      } else {
-        return fmt.Errorf("unexpected value for field Md5Fingerprint: %v (%v)", raw, reflect.TypeOf(raw))
-      }
-    
-  }
-  
-  if true {
     raw := in.Sha1Fingerprint
     plainV, plainOk := raw.(string)
     sliceWrapperV, sliceWrapperOk := raw.([]interface{})
@@ -65382,6 +68366,42 @@ func (out *Cert) UnmarshalJSON(data []byte) error {
         
       } else {
         return fmt.Errorf("unexpected value for field Sha1Fingerprint: %v (%v)", raw, reflect.TypeOf(raw))
+      }
+    
+  }
+  
+  if true {
+    raw := in.Sha256Fingerprint
+    plainV, plainOk := raw.(string)
+    sliceWrapperV, sliceWrapperOk := raw.([]interface{})
+    var sliceV []string
+    sliceOk := sliceWrapperOk
+    if sliceWrapperOk {
+      for _, rawItem := range sliceWrapperV {
+        
+        itemV, itemOk := rawItem.(string)
+        
+        if !itemOk {
+          sliceOk = false
+          break
+        }
+        
+        sliceV = append(sliceV, itemV)
+        
+      }
+    }
+    
+      if plainOk {
+        out.Sha256Fingerprint = plainV
+      } else if sliceOk {
+        
+          if len(sliceV) != 1 {
+            return fmt.Errorf("unexpected value for field Sha256Fingerprint: %v; expected exactly one element", raw)
+          }
+          out.Sha256Fingerprint = sliceV[0]
+        
+      } else {
+        return fmt.Errorf("unexpected value for field Sha256Fingerprint: %v (%v)", raw, reflect.TypeOf(raw))
       }
     
   }
@@ -65673,6 +68693,523 @@ func (out *Cert) UnmarshalJSON(data []byte) error {
   return nil
 }
 
+type Certmap struct {
+  
+    /*
+Domain
+
+    */
+    Domain interface{} `json:"domain,omitempty"`
+  
+    /*
+User logins
+
+    */
+    UID *[]string `json:"uid,omitempty"`
+  }
+
+func (t *Certmap) String() string {
+  if t == nil {
+    return "<nil>"
+  }
+  b, e := json.Marshal(t)
+  if e != nil {
+    return fmt.Sprintf("Certmap[failed json.Marshal: %v]", e)
+  }
+  return fmt.Sprintf("Certmap%v", string(b))
+}
+
+type jsonCertmap struct {
+  
+    Domain interface{} `json:"domain"`
+  
+    UID interface{} `json:"uid"`
+  }
+
+func (out *Certmap) UnmarshalJSON(data []byte) error {
+  var in jsonCertmap
+  if e := json.Unmarshal(data, &in); e != nil {
+    return e
+  }
+  
+  if true {
+    raw := in.Domain
+    plainV, plainOk := raw.(interface{})
+    sliceWrapperV, sliceWrapperOk := raw.([]interface{})
+    var sliceV []interface{}
+    sliceOk := sliceWrapperOk
+    if sliceWrapperOk {
+      for _, rawItem := range sliceWrapperV {
+        
+        itemV, itemOk := rawItem.(interface{})
+        
+        if !itemOk {
+          sliceOk = false
+          break
+        }
+        
+        sliceV = append(sliceV, itemV)
+        
+      }
+    }
+    
+      if plainOk {
+        out.Domain = plainV
+      } else if sliceOk {
+        
+          if len(sliceV) != 1 {
+            return fmt.Errorf("unexpected value for field Domain: %v; expected exactly one element", raw)
+          }
+          out.Domain = sliceV[0]
+        
+      } else {
+        return fmt.Errorf("unexpected value for field Domain: %v (%v)", raw, reflect.TypeOf(raw))
+      }
+    
+  }
+  
+  if in.UID != nil {
+    raw := in.UID
+    plainV, plainOk := raw.(string)
+    sliceWrapperV, sliceWrapperOk := raw.([]interface{})
+    var sliceV []string
+    sliceOk := sliceWrapperOk
+    if sliceWrapperOk {
+      for _, rawItem := range sliceWrapperV {
+        
+        itemV, itemOk := rawItem.(string)
+        
+        if !itemOk {
+          sliceOk = false
+          break
+        }
+        
+        sliceV = append(sliceV, itemV)
+        
+      }
+    }
+    
+      if plainOk {
+        out.UID = &[]string{plainV}
+      } else if sliceOk {
+        
+        out.UID = &sliceV
+      } else {
+        return fmt.Errorf("unexpected value for field UID: %v (%v)", raw, reflect.TypeOf(raw))
+      }
+    
+  }
+  return nil
+}
+
+type Certmapconfig struct {
+  
+    /*
+Prompt for the username
+Prompt for the username when multiple identities are mapped to a certificate
+    */
+    Ipacertmappromptusername *bool `json:"ipacertmappromptusername,omitempty"`
+  }
+
+func (t *Certmapconfig) String() string {
+  if t == nil {
+    return "<nil>"
+  }
+  b, e := json.Marshal(t)
+  if e != nil {
+    return fmt.Sprintf("Certmapconfig[failed json.Marshal: %v]", e)
+  }
+  return fmt.Sprintf("Certmapconfig%v", string(b))
+}
+
+type jsonCertmapconfig struct {
+  
+    Ipacertmappromptusername interface{} `json:"ipacertmappromptusername"`
+  }
+
+func (out *Certmapconfig) UnmarshalJSON(data []byte) error {
+  var in jsonCertmapconfig
+  if e := json.Unmarshal(data, &in); e != nil {
+    return e
+  }
+  
+  if in.Ipacertmappromptusername != nil {
+    raw := in.Ipacertmappromptusername
+    plainV, plainOk := raw.(bool)
+    sliceWrapperV, sliceWrapperOk := raw.([]interface{})
+    var sliceV []bool
+    sliceOk := sliceWrapperOk
+    if sliceWrapperOk {
+      for _, rawItem := range sliceWrapperV {
+        
+        itemV, itemOk := rawItem.(bool)
+        
+        if !itemOk {
+          sliceOk = false
+          break
+        }
+        
+        sliceV = append(sliceV, itemV)
+        
+      }
+    }
+    
+      if plainOk {
+        out.Ipacertmappromptusername = &plainV
+      } else if sliceOk {
+        
+          if len(sliceV) == 1 {
+            out.Ipacertmappromptusername = &sliceV[0]
+          } else if len(sliceV) > 1 {
+            return fmt.Errorf("unexpected value for field Ipacertmappromptusername: %v; expected at most one element", raw)
+          }
+        
+      } else {
+        return fmt.Errorf("unexpected value for field Ipacertmappromptusername: %v (%v)", raw, reflect.TypeOf(raw))
+      }
+    
+  }
+  return nil
+}
+
+type Certmaprule struct {
+  
+    /*
+Rule name
+Certificate Identity Mapping Rule name
+    */
+    Cn string `json:"cn,omitempty"`
+  
+    /*
+Description
+Certificate Identity Mapping Rule description
+    */
+    Description *string `json:"description,omitempty"`
+  
+    /*
+Mapping rule
+Rule used to map the certificate with a user entry
+    */
+    Ipacertmapmaprule *string `json:"ipacertmapmaprule,omitempty"`
+  
+    /*
+Matching rule
+Rule used to check if a certificate can be used for authentication
+    */
+    Ipacertmapmatchrule *string `json:"ipacertmapmatchrule,omitempty"`
+  
+    /*
+Domain name
+Domain where the user entry will be searched
+    */
+    Associateddomain *[]interface{} `json:"associateddomain,omitempty"`
+  
+    /*
+Priority
+Priority of the rule (higher number means lower priority
+    */
+    Ipacertmappriority *int `json:"ipacertmappriority,omitempty"`
+  
+    /*
+Enabled
+
+    */
+    Ipaenabledflag *bool `json:"ipaenabledflag,omitempty"`
+  }
+
+func (t *Certmaprule) String() string {
+  if t == nil {
+    return "<nil>"
+  }
+  b, e := json.Marshal(t)
+  if e != nil {
+    return fmt.Sprintf("Certmaprule[failed json.Marshal: %v]", e)
+  }
+  return fmt.Sprintf("Certmaprule%v", string(b))
+}
+
+type jsonCertmaprule struct {
+  
+    Cn interface{} `json:"cn"`
+  
+    Description interface{} `json:"description"`
+  
+    Ipacertmapmaprule interface{} `json:"ipacertmapmaprule"`
+  
+    Ipacertmapmatchrule interface{} `json:"ipacertmapmatchrule"`
+  
+    Associateddomain interface{} `json:"associateddomain"`
+  
+    Ipacertmappriority interface{} `json:"ipacertmappriority"`
+  
+    Ipaenabledflag interface{} `json:"ipaenabledflag"`
+  }
+
+func (out *Certmaprule) UnmarshalJSON(data []byte) error {
+  var in jsonCertmaprule
+  if e := json.Unmarshal(data, &in); e != nil {
+    return e
+  }
+  
+  if true {
+    raw := in.Cn
+    plainV, plainOk := raw.(string)
+    sliceWrapperV, sliceWrapperOk := raw.([]interface{})
+    var sliceV []string
+    sliceOk := sliceWrapperOk
+    if sliceWrapperOk {
+      for _, rawItem := range sliceWrapperV {
+        
+        itemV, itemOk := rawItem.(string)
+        
+        if !itemOk {
+          sliceOk = false
+          break
+        }
+        
+        sliceV = append(sliceV, itemV)
+        
+      }
+    }
+    
+      if plainOk {
+        out.Cn = plainV
+      } else if sliceOk {
+        
+          if len(sliceV) != 1 {
+            return fmt.Errorf("unexpected value for field Cn: %v; expected exactly one element", raw)
+          }
+          out.Cn = sliceV[0]
+        
+      } else {
+        return fmt.Errorf("unexpected value for field Cn: %v (%v)", raw, reflect.TypeOf(raw))
+      }
+    
+  }
+  
+  if in.Description != nil {
+    raw := in.Description
+    plainV, plainOk := raw.(string)
+    sliceWrapperV, sliceWrapperOk := raw.([]interface{})
+    var sliceV []string
+    sliceOk := sliceWrapperOk
+    if sliceWrapperOk {
+      for _, rawItem := range sliceWrapperV {
+        
+        itemV, itemOk := rawItem.(string)
+        
+        if !itemOk {
+          sliceOk = false
+          break
+        }
+        
+        sliceV = append(sliceV, itemV)
+        
+      }
+    }
+    
+      if plainOk {
+        out.Description = &plainV
+      } else if sliceOk {
+        
+          if len(sliceV) == 1 {
+            out.Description = &sliceV[0]
+          } else if len(sliceV) > 1 {
+            return fmt.Errorf("unexpected value for field Description: %v; expected at most one element", raw)
+          }
+        
+      } else {
+        return fmt.Errorf("unexpected value for field Description: %v (%v)", raw, reflect.TypeOf(raw))
+      }
+    
+  }
+  
+  if in.Ipacertmapmaprule != nil {
+    raw := in.Ipacertmapmaprule
+    plainV, plainOk := raw.(string)
+    sliceWrapperV, sliceWrapperOk := raw.([]interface{})
+    var sliceV []string
+    sliceOk := sliceWrapperOk
+    if sliceWrapperOk {
+      for _, rawItem := range sliceWrapperV {
+        
+        itemV, itemOk := rawItem.(string)
+        
+        if !itemOk {
+          sliceOk = false
+          break
+        }
+        
+        sliceV = append(sliceV, itemV)
+        
+      }
+    }
+    
+      if plainOk {
+        out.Ipacertmapmaprule = &plainV
+      } else if sliceOk {
+        
+          if len(sliceV) == 1 {
+            out.Ipacertmapmaprule = &sliceV[0]
+          } else if len(sliceV) > 1 {
+            return fmt.Errorf("unexpected value for field Ipacertmapmaprule: %v; expected at most one element", raw)
+          }
+        
+      } else {
+        return fmt.Errorf("unexpected value for field Ipacertmapmaprule: %v (%v)", raw, reflect.TypeOf(raw))
+      }
+    
+  }
+  
+  if in.Ipacertmapmatchrule != nil {
+    raw := in.Ipacertmapmatchrule
+    plainV, plainOk := raw.(string)
+    sliceWrapperV, sliceWrapperOk := raw.([]interface{})
+    var sliceV []string
+    sliceOk := sliceWrapperOk
+    if sliceWrapperOk {
+      for _, rawItem := range sliceWrapperV {
+        
+        itemV, itemOk := rawItem.(string)
+        
+        if !itemOk {
+          sliceOk = false
+          break
+        }
+        
+        sliceV = append(sliceV, itemV)
+        
+      }
+    }
+    
+      if plainOk {
+        out.Ipacertmapmatchrule = &plainV
+      } else if sliceOk {
+        
+          if len(sliceV) == 1 {
+            out.Ipacertmapmatchrule = &sliceV[0]
+          } else if len(sliceV) > 1 {
+            return fmt.Errorf("unexpected value for field Ipacertmapmatchrule: %v; expected at most one element", raw)
+          }
+        
+      } else {
+        return fmt.Errorf("unexpected value for field Ipacertmapmatchrule: %v (%v)", raw, reflect.TypeOf(raw))
+      }
+    
+  }
+  
+  if in.Associateddomain != nil {
+    raw := in.Associateddomain
+    plainV, plainOk := raw.(interface{})
+    sliceWrapperV, sliceWrapperOk := raw.([]interface{})
+    var sliceV []interface{}
+    sliceOk := sliceWrapperOk
+    if sliceWrapperOk {
+      for _, rawItem := range sliceWrapperV {
+        
+        itemV, itemOk := rawItem.(interface{})
+        
+        if !itemOk {
+          sliceOk = false
+          break
+        }
+        
+        sliceV = append(sliceV, itemV)
+        
+      }
+    }
+    
+      if plainOk {
+        out.Associateddomain = &[]interface{}{plainV}
+      } else if sliceOk {
+        
+        out.Associateddomain = &sliceV
+      } else {
+        return fmt.Errorf("unexpected value for field Associateddomain: %v (%v)", raw, reflect.TypeOf(raw))
+      }
+    
+  }
+  
+  if in.Ipacertmappriority != nil {
+    raw := in.Ipacertmappriority
+    plainV, plainOk := raw.(int)
+    sliceWrapperV, sliceWrapperOk := raw.([]interface{})
+    var sliceV []int
+    sliceOk := sliceWrapperOk
+    if sliceWrapperOk {
+      for _, rawItem := range sliceWrapperV {
+        
+        itemV, itemOk := rawItem.(string)
+        
+        if !itemOk {
+          sliceOk = false
+          break
+        }
+        
+        intV, e := strconv.Atoi(itemV)
+        if e != nil {
+          return fmt.Errorf("unexpected value for field Ipacertmappriority: %v (hit string which couldn't be converted to int)", raw)
+        }
+        sliceV = append(sliceV, intV)
+        
+      }
+    }
+    
+      if plainOk {
+        out.Ipacertmappriority = &plainV
+      } else if sliceOk {
+        
+          if len(sliceV) == 1 {
+            out.Ipacertmappriority = &sliceV[0]
+          } else if len(sliceV) > 1 {
+            return fmt.Errorf("unexpected value for field Ipacertmappriority: %v; expected at most one element", raw)
+          }
+        
+      } else {
+        return fmt.Errorf("unexpected value for field Ipacertmappriority: %v (%v)", raw, reflect.TypeOf(raw))
+      }
+    
+  }
+  
+  if in.Ipaenabledflag != nil {
+    raw := in.Ipaenabledflag
+    plainV, plainOk := raw.(bool)
+    sliceWrapperV, sliceWrapperOk := raw.([]interface{})
+    var sliceV []bool
+    sliceOk := sliceWrapperOk
+    if sliceWrapperOk {
+      for _, rawItem := range sliceWrapperV {
+        
+        itemV, itemOk := rawItem.(bool)
+        
+        if !itemOk {
+          sliceOk = false
+          break
+        }
+        
+        sliceV = append(sliceV, itemV)
+        
+      }
+    }
+    
+      if plainOk {
+        out.Ipaenabledflag = &plainV
+      } else if sliceOk {
+        
+          if len(sliceV) == 1 {
+            out.Ipaenabledflag = &sliceV[0]
+          } else if len(sliceV) > 1 {
+            return fmt.Errorf("unexpected value for field Ipaenabledflag: %v; expected at most one element", raw)
+          }
+        
+      } else {
+        return fmt.Errorf("unexpected value for field Ipaenabledflag: %v (%v)", raw, reflect.TypeOf(raw))
+      }
+    
+  }
+  return nil
+}
+
 type Certprofile struct {
   
     /*
@@ -65887,7 +69424,13 @@ Name of issuing CA
 Certificate
 Base-64 encoded certificate.
     */
-    Certificate string `json:"certificate,omitempty"`
+    Certificate interface{} `json:"certificate,omitempty"`
+  
+    /*
+Certificate chain
+X.509 certificate chain
+    */
+    CertificateChain *[]string `json:"certificate_chain,omitempty"`
   
     /*
 Subject
@@ -65905,7 +69448,7 @@ Subject email address
 Subject DNS name
 
     */
-    SanDnsname *[]string `json:"san_dnsname,omitempty"`
+    SanDnsname *[]interface{} `json:"san_dnsname,omitempty"`
   
     /*
 Subject X.400 address
@@ -65980,16 +69523,16 @@ Not After
     ValidNotAfter time.Time `json:"valid_not_after,omitempty"`
   
     /*
-Fingerprint (MD5)
-
-    */
-    Md5Fingerprint string `json:"md5_fingerprint,omitempty"`
-  
-    /*
 Fingerprint (SHA1)
 
     */
     Sha1Fingerprint string `json:"sha1_fingerprint,omitempty"`
+  
+    /*
+Fingerprint (SHA256)
+
+    */
+    Sha256Fingerprint string `json:"sha256_fingerprint,omitempty"`
   
     /*
 Serial number
@@ -66045,6 +69588,8 @@ type jsonCertreq struct {
   
     Certificate interface{} `json:"certificate"`
   
+    CertificateChain interface{} `json:"certificate_chain"`
+  
     Subject interface{} `json:"subject"`
   
     SanRfc822name interface{} `json:"san_rfc822name"`
@@ -66075,9 +69620,9 @@ type jsonCertreq struct {
   
     ValidNotAfter interface{} `json:"valid_not_after"`
   
-    Md5Fingerprint interface{} `json:"md5_fingerprint"`
-  
     Sha1Fingerprint interface{} `json:"sha1_fingerprint"`
+  
+    Sha256Fingerprint interface{} `json:"sha256_fingerprint"`
   
     SerialNumber interface{} `json:"serial_number"`
   
@@ -66137,14 +69682,14 @@ func (out *Certreq) UnmarshalJSON(data []byte) error {
   
   if true {
     raw := in.Certificate
-    plainV, plainOk := raw.(string)
+    plainV, plainOk := raw.(interface{})
     sliceWrapperV, sliceWrapperOk := raw.([]interface{})
-    var sliceV []string
+    var sliceV []interface{}
     sliceOk := sliceWrapperOk
     if sliceWrapperOk {
       for _, rawItem := range sliceWrapperV {
         
-        itemV, itemOk := rawItem.(string)
+        itemV, itemOk := rawItem.(interface{})
         
         if !itemOk {
           sliceOk = false
@@ -66167,6 +69712,38 @@ func (out *Certreq) UnmarshalJSON(data []byte) error {
         
       } else {
         return fmt.Errorf("unexpected value for field Certificate: %v (%v)", raw, reflect.TypeOf(raw))
+      }
+    
+  }
+  
+  if in.CertificateChain != nil {
+    raw := in.CertificateChain
+    plainV, plainOk := raw.(string)
+    sliceWrapperV, sliceWrapperOk := raw.([]interface{})
+    var sliceV []string
+    sliceOk := sliceWrapperOk
+    if sliceWrapperOk {
+      for _, rawItem := range sliceWrapperV {
+        
+        itemV, itemOk := rawItem.(string)
+        
+        if !itemOk {
+          sliceOk = false
+          break
+        }
+        
+        sliceV = append(sliceV, itemV)
+        
+      }
+    }
+    
+      if plainOk {
+        out.CertificateChain = &[]string{plainV}
+      } else if sliceOk {
+        
+        out.CertificateChain = &sliceV
+      } else {
+        return fmt.Errorf("unexpected value for field CertificateChain: %v (%v)", raw, reflect.TypeOf(raw))
       }
     
   }
@@ -66241,14 +69818,14 @@ func (out *Certreq) UnmarshalJSON(data []byte) error {
   
   if in.SanDnsname != nil {
     raw := in.SanDnsname
-    plainV, plainOk := raw.(string)
+    plainV, plainOk := raw.(interface{})
     sliceWrapperV, sliceWrapperOk := raw.([]interface{})
-    var sliceV []string
+    var sliceV []interface{}
     sliceOk := sliceWrapperOk
     if sliceWrapperOk {
       for _, rawItem := range sliceWrapperV {
         
-        itemV, itemOk := rawItem.(string)
+        itemV, itemOk := rawItem.(interface{})
         
         if !itemOk {
           sliceOk = false
@@ -66261,7 +69838,7 @@ func (out *Certreq) UnmarshalJSON(data []byte) error {
     }
     
       if plainOk {
-        out.SanDnsname = &[]string{plainV}
+        out.SanDnsname = &[]interface{}{plainV}
       } else if sliceOk {
         
         out.SanDnsname = &sliceV
@@ -66668,42 +70245,6 @@ func (out *Certreq) UnmarshalJSON(data []byte) error {
   }
   
   if true {
-    raw := in.Md5Fingerprint
-    plainV, plainOk := raw.(string)
-    sliceWrapperV, sliceWrapperOk := raw.([]interface{})
-    var sliceV []string
-    sliceOk := sliceWrapperOk
-    if sliceWrapperOk {
-      for _, rawItem := range sliceWrapperV {
-        
-        itemV, itemOk := rawItem.(string)
-        
-        if !itemOk {
-          sliceOk = false
-          break
-        }
-        
-        sliceV = append(sliceV, itemV)
-        
-      }
-    }
-    
-      if plainOk {
-        out.Md5Fingerprint = plainV
-      } else if sliceOk {
-        
-          if len(sliceV) != 1 {
-            return fmt.Errorf("unexpected value for field Md5Fingerprint: %v; expected exactly one element", raw)
-          }
-          out.Md5Fingerprint = sliceV[0]
-        
-      } else {
-        return fmt.Errorf("unexpected value for field Md5Fingerprint: %v (%v)", raw, reflect.TypeOf(raw))
-      }
-    
-  }
-  
-  if true {
     raw := in.Sha1Fingerprint
     plainV, plainOk := raw.(string)
     sliceWrapperV, sliceWrapperOk := raw.([]interface{})
@@ -66735,6 +70276,42 @@ func (out *Certreq) UnmarshalJSON(data []byte) error {
         
       } else {
         return fmt.Errorf("unexpected value for field Sha1Fingerprint: %v (%v)", raw, reflect.TypeOf(raw))
+      }
+    
+  }
+  
+  if true {
+    raw := in.Sha256Fingerprint
+    plainV, plainOk := raw.(string)
+    sliceWrapperV, sliceWrapperOk := raw.([]interface{})
+    var sliceV []string
+    sliceOk := sliceWrapperOk
+    if sliceWrapperOk {
+      for _, rawItem := range sliceWrapperV {
+        
+        itemV, itemOk := rawItem.(string)
+        
+        if !itemOk {
+          sliceOk = false
+          break
+        }
+        
+        sliceV = append(sliceV, itemV)
+        
+      }
+    }
+    
+      if plainOk {
+        out.Sha256Fingerprint = plainV
+      } else if sliceOk {
+        
+          if len(sliceV) != 1 {
+            return fmt.Errorf("unexpected value for field Sha256Fingerprint: %v; expected exactly one element", raw)
+          }
+          out.Sha256Fingerprint = sliceV[0]
+        
+      } else {
+        return fmt.Errorf("unexpected value for field Sha256Fingerprint: %v (%v)", raw, reflect.TypeOf(raw))
       }
     
   }
@@ -67913,6 +71490,18 @@ List of all IPA masters
     IpaMasterServer *[]string `json:"ipa_master_server,omitempty"`
   
     /*
+Hidden IPA masters
+List of all hidden IPA masters
+    */
+    IpaMasterHiddenServer *[]string `json:"ipa_master_hidden_server,omitempty"`
+  
+    /*
+IPA master capable of PKINIT
+IPA master which can process PKINIT requests
+    */
+    PkinitServerServer *[]string `json:"pkinit_server_server,omitempty"`
+  
+    /*
 IPA CA servers
 IPA servers configured as certificate authority
     */
@@ -67925,10 +71514,52 @@ IPA servers with enabled NTP
     NtpServerServer *[]string `json:"ntp_server_server,omitempty"`
   
     /*
+Hidden IPA CA servers
+Hidden IPA servers configured as certificate authority
+    */
+    CaServerHiddenServer *[]string `json:"ca_server_hidden_server,omitempty"`
+  
+    /*
 IPA CA renewal master
 Renewal master for IPA certificate authority
     */
     CaRenewalMasterServer *string `json:"ca_renewal_master_server,omitempty"`
+  
+    /*
+IPA KRA servers
+IPA servers configured as key recovery agent
+    */
+    KraServerServer *[]string `json:"kra_server_server,omitempty"`
+  
+    /*
+Hidden IPA KRA servers
+Hidden IPA servers configured as key recovery agent
+    */
+    KraServerHiddenServer *[]string `json:"kra_server_hidden_server,omitempty"`
+  
+    /*
+Domain resolution order
+colon-separated list of domains used for short name qualification
+    */
+    Ipadomainresolutionorder *string `json:"ipadomainresolutionorder,omitempty"`
+  
+    /*
+IPA DNS servers
+IPA servers configured as domain name server
+    */
+    DNSServerServer *[]string `json:"dns_server_server,omitempty"`
+  
+    /*
+Hidden IPA DNS servers
+Hidden IPA servers configured as domain name server
+    */
+    DNSServerHiddenServer *[]string `json:"dns_server_hidden_server,omitempty"`
+  
+    /*
+IPA DNSSec key master
+DNSec key master
+    */
+    DnssecKeyMasterServer *string `json:"dnssec_key_master_server,omitempty"`
   }
 
 func (t *Config) String() string {
@@ -67984,11 +71615,29 @@ type jsonConfig struct {
   
     IpaMasterServer interface{} `json:"ipa_master_server"`
   
+    IpaMasterHiddenServer interface{} `json:"ipa_master_hidden_server"`
+  
+    PkinitServerServer interface{} `json:"pkinit_server_server"`
+  
     CaServerServer interface{} `json:"ca_server_server"`
   
     NtpServerServer interface{} `json:"ntp_server_server"`
   
+    CaServerHiddenServer interface{} `json:"ca_server_hidden_server"`
+  
     CaRenewalMasterServer interface{} `json:"ca_renewal_master_server"`
+  
+    KraServerServer interface{} `json:"kra_server_server"`
+  
+    KraServerHiddenServer interface{} `json:"kra_server_hidden_server"`
+  
+    Ipadomainresolutionorder interface{} `json:"ipadomainresolutionorder"`
+  
+    DNSServerServer interface{} `json:"dns_server_server"`
+  
+    DNSServerHiddenServer interface{} `json:"dns_server_hidden_server"`
+  
+    DnssecKeyMasterServer interface{} `json:"dnssec_key_master_server"`
   }
 
 func (out *Config) UnmarshalJSON(data []byte) error {
@@ -68720,6 +72369,70 @@ func (out *Config) UnmarshalJSON(data []byte) error {
     
   }
   
+  if in.IpaMasterHiddenServer != nil {
+    raw := in.IpaMasterHiddenServer
+    plainV, plainOk := raw.(string)
+    sliceWrapperV, sliceWrapperOk := raw.([]interface{})
+    var sliceV []string
+    sliceOk := sliceWrapperOk
+    if sliceWrapperOk {
+      for _, rawItem := range sliceWrapperV {
+        
+        itemV, itemOk := rawItem.(string)
+        
+        if !itemOk {
+          sliceOk = false
+          break
+        }
+        
+        sliceV = append(sliceV, itemV)
+        
+      }
+    }
+    
+      if plainOk {
+        out.IpaMasterHiddenServer = &[]string{plainV}
+      } else if sliceOk {
+        
+        out.IpaMasterHiddenServer = &sliceV
+      } else {
+        return fmt.Errorf("unexpected value for field IpaMasterHiddenServer: %v (%v)", raw, reflect.TypeOf(raw))
+      }
+    
+  }
+  
+  if in.PkinitServerServer != nil {
+    raw := in.PkinitServerServer
+    plainV, plainOk := raw.(string)
+    sliceWrapperV, sliceWrapperOk := raw.([]interface{})
+    var sliceV []string
+    sliceOk := sliceWrapperOk
+    if sliceWrapperOk {
+      for _, rawItem := range sliceWrapperV {
+        
+        itemV, itemOk := rawItem.(string)
+        
+        if !itemOk {
+          sliceOk = false
+          break
+        }
+        
+        sliceV = append(sliceV, itemV)
+        
+      }
+    }
+    
+      if plainOk {
+        out.PkinitServerServer = &[]string{plainV}
+      } else if sliceOk {
+        
+        out.PkinitServerServer = &sliceV
+      } else {
+        return fmt.Errorf("unexpected value for field PkinitServerServer: %v (%v)", raw, reflect.TypeOf(raw))
+      }
+    
+  }
+  
   if in.CaServerServer != nil {
     raw := in.CaServerServer
     plainV, plainOk := raw.(string)
@@ -68784,6 +72497,38 @@ func (out *Config) UnmarshalJSON(data []byte) error {
     
   }
   
+  if in.CaServerHiddenServer != nil {
+    raw := in.CaServerHiddenServer
+    plainV, plainOk := raw.(string)
+    sliceWrapperV, sliceWrapperOk := raw.([]interface{})
+    var sliceV []string
+    sliceOk := sliceWrapperOk
+    if sliceWrapperOk {
+      for _, rawItem := range sliceWrapperV {
+        
+        itemV, itemOk := rawItem.(string)
+        
+        if !itemOk {
+          sliceOk = false
+          break
+        }
+        
+        sliceV = append(sliceV, itemV)
+        
+      }
+    }
+    
+      if plainOk {
+        out.CaServerHiddenServer = &[]string{plainV}
+      } else if sliceOk {
+        
+        out.CaServerHiddenServer = &sliceV
+      } else {
+        return fmt.Errorf("unexpected value for field CaServerHiddenServer: %v (%v)", raw, reflect.TypeOf(raw))
+      }
+    
+  }
+  
   if in.CaRenewalMasterServer != nil {
     raw := in.CaRenewalMasterServer
     plainV, plainOk := raw.(string)
@@ -68817,6 +72562,208 @@ func (out *Config) UnmarshalJSON(data []byte) error {
         
       } else {
         return fmt.Errorf("unexpected value for field CaRenewalMasterServer: %v (%v)", raw, reflect.TypeOf(raw))
+      }
+    
+  }
+  
+  if in.KraServerServer != nil {
+    raw := in.KraServerServer
+    plainV, plainOk := raw.(string)
+    sliceWrapperV, sliceWrapperOk := raw.([]interface{})
+    var sliceV []string
+    sliceOk := sliceWrapperOk
+    if sliceWrapperOk {
+      for _, rawItem := range sliceWrapperV {
+        
+        itemV, itemOk := rawItem.(string)
+        
+        if !itemOk {
+          sliceOk = false
+          break
+        }
+        
+        sliceV = append(sliceV, itemV)
+        
+      }
+    }
+    
+      if plainOk {
+        out.KraServerServer = &[]string{plainV}
+      } else if sliceOk {
+        
+        out.KraServerServer = &sliceV
+      } else {
+        return fmt.Errorf("unexpected value for field KraServerServer: %v (%v)", raw, reflect.TypeOf(raw))
+      }
+    
+  }
+  
+  if in.KraServerHiddenServer != nil {
+    raw := in.KraServerHiddenServer
+    plainV, plainOk := raw.(string)
+    sliceWrapperV, sliceWrapperOk := raw.([]interface{})
+    var sliceV []string
+    sliceOk := sliceWrapperOk
+    if sliceWrapperOk {
+      for _, rawItem := range sliceWrapperV {
+        
+        itemV, itemOk := rawItem.(string)
+        
+        if !itemOk {
+          sliceOk = false
+          break
+        }
+        
+        sliceV = append(sliceV, itemV)
+        
+      }
+    }
+    
+      if plainOk {
+        out.KraServerHiddenServer = &[]string{plainV}
+      } else if sliceOk {
+        
+        out.KraServerHiddenServer = &sliceV
+      } else {
+        return fmt.Errorf("unexpected value for field KraServerHiddenServer: %v (%v)", raw, reflect.TypeOf(raw))
+      }
+    
+  }
+  
+  if in.Ipadomainresolutionorder != nil {
+    raw := in.Ipadomainresolutionorder
+    plainV, plainOk := raw.(string)
+    sliceWrapperV, sliceWrapperOk := raw.([]interface{})
+    var sliceV []string
+    sliceOk := sliceWrapperOk
+    if sliceWrapperOk {
+      for _, rawItem := range sliceWrapperV {
+        
+        itemV, itemOk := rawItem.(string)
+        
+        if !itemOk {
+          sliceOk = false
+          break
+        }
+        
+        sliceV = append(sliceV, itemV)
+        
+      }
+    }
+    
+      if plainOk {
+        out.Ipadomainresolutionorder = &plainV
+      } else if sliceOk {
+        
+          if len(sliceV) == 1 {
+            out.Ipadomainresolutionorder = &sliceV[0]
+          } else if len(sliceV) > 1 {
+            return fmt.Errorf("unexpected value for field Ipadomainresolutionorder: %v; expected at most one element", raw)
+          }
+        
+      } else {
+        return fmt.Errorf("unexpected value for field Ipadomainresolutionorder: %v (%v)", raw, reflect.TypeOf(raw))
+      }
+    
+  }
+  
+  if in.DNSServerServer != nil {
+    raw := in.DNSServerServer
+    plainV, plainOk := raw.(string)
+    sliceWrapperV, sliceWrapperOk := raw.([]interface{})
+    var sliceV []string
+    sliceOk := sliceWrapperOk
+    if sliceWrapperOk {
+      for _, rawItem := range sliceWrapperV {
+        
+        itemV, itemOk := rawItem.(string)
+        
+        if !itemOk {
+          sliceOk = false
+          break
+        }
+        
+        sliceV = append(sliceV, itemV)
+        
+      }
+    }
+    
+      if plainOk {
+        out.DNSServerServer = &[]string{plainV}
+      } else if sliceOk {
+        
+        out.DNSServerServer = &sliceV
+      } else {
+        return fmt.Errorf("unexpected value for field DNSServerServer: %v (%v)", raw, reflect.TypeOf(raw))
+      }
+    
+  }
+  
+  if in.DNSServerHiddenServer != nil {
+    raw := in.DNSServerHiddenServer
+    plainV, plainOk := raw.(string)
+    sliceWrapperV, sliceWrapperOk := raw.([]interface{})
+    var sliceV []string
+    sliceOk := sliceWrapperOk
+    if sliceWrapperOk {
+      for _, rawItem := range sliceWrapperV {
+        
+        itemV, itemOk := rawItem.(string)
+        
+        if !itemOk {
+          sliceOk = false
+          break
+        }
+        
+        sliceV = append(sliceV, itemV)
+        
+      }
+    }
+    
+      if plainOk {
+        out.DNSServerHiddenServer = &[]string{plainV}
+      } else if sliceOk {
+        
+        out.DNSServerHiddenServer = &sliceV
+      } else {
+        return fmt.Errorf("unexpected value for field DNSServerHiddenServer: %v (%v)", raw, reflect.TypeOf(raw))
+      }
+    
+  }
+  
+  if in.DnssecKeyMasterServer != nil {
+    raw := in.DnssecKeyMasterServer
+    plainV, plainOk := raw.(string)
+    sliceWrapperV, sliceWrapperOk := raw.([]interface{})
+    var sliceV []string
+    sliceOk := sliceWrapperOk
+    if sliceWrapperOk {
+      for _, rawItem := range sliceWrapperV {
+        
+        itemV, itemOk := rawItem.(string)
+        
+        if !itemOk {
+          sliceOk = false
+          break
+        }
+        
+        sliceV = append(sliceV, itemV)
+        
+      }
+    }
+    
+      if plainOk {
+        out.DnssecKeyMasterServer = &plainV
+      } else if sliceOk {
+        
+          if len(sliceV) == 1 {
+            out.DnssecKeyMasterServer = &sliceV[0]
+          } else if len(sliceV) > 1 {
+            return fmt.Errorf("unexpected value for field DnssecKeyMasterServer: %v; expected at most one element", raw)
+          }
+        
+      } else {
+        return fmt.Errorf("unexpected value for field DnssecKeyMasterServer: %v (%v)", raw, reflect.TypeOf(raw))
       }
     
   }
@@ -69450,12 +73397,6 @@ IP Address
 
     */
     IPAddress string `json:"ip_address,omitempty"`
-  
-    /*
-Create reverse
-Create reverse record for this IP Address
-    */
-    CreateReverse *bool `json:"create_reverse,omitempty"`
   }
 
 func (t *Dnsaaaarecord) String() string {
@@ -69472,8 +73413,6 @@ func (t *Dnsaaaarecord) String() string {
 type jsonDnsaaaarecord struct {
   
     IPAddress interface{} `json:"ip_address"`
-  
-    CreateReverse interface{} `json:"create_reverse"`
   }
 
 func (out *Dnsaaaarecord) UnmarshalJSON(data []byte) error {
@@ -69517,43 +73456,6 @@ func (out *Dnsaaaarecord) UnmarshalJSON(data []byte) error {
       }
     
   }
-  
-  if in.CreateReverse != nil {
-    raw := in.CreateReverse
-    plainV, plainOk := raw.(bool)
-    sliceWrapperV, sliceWrapperOk := raw.([]interface{})
-    var sliceV []bool
-    sliceOk := sliceWrapperOk
-    if sliceWrapperOk {
-      for _, rawItem := range sliceWrapperV {
-        
-        itemV, itemOk := rawItem.(bool)
-        
-        if !itemOk {
-          sliceOk = false
-          break
-        }
-        
-        sliceV = append(sliceV, itemV)
-        
-      }
-    }
-    
-      if plainOk {
-        out.CreateReverse = &plainV
-      } else if sliceOk {
-        
-          if len(sliceV) == 1 {
-            out.CreateReverse = &sliceV[0]
-          } else if len(sliceV) > 1 {
-            return fmt.Errorf("unexpected value for field CreateReverse: %v; expected at most one element", raw)
-          }
-        
-      } else {
-        return fmt.Errorf("unexpected value for field CreateReverse: %v (%v)", raw, reflect.TypeOf(raw))
-      }
-    
-  }
   return nil
 }
 
@@ -69569,7 +73471,7 @@ Subtype
 Hostname
 
     */
-    Hostname string `json:"hostname,omitempty"`
+    Hostname interface{} `json:"hostname,omitempty"`
   }
 
 func (t *Dnsafsdbrecord) String() string {
@@ -69639,14 +73541,14 @@ func (out *Dnsafsdbrecord) UnmarshalJSON(data []byte) error {
   
   if true {
     raw := in.Hostname
-    plainV, plainOk := raw.(string)
+    plainV, plainOk := raw.(interface{})
     sliceWrapperV, sliceWrapperOk := raw.([]interface{})
-    var sliceV []string
+    var sliceV []interface{}
     sliceOk := sliceWrapperOk
     if sliceWrapperOk {
       for _, rawItem := range sliceWrapperV {
         
-        itemV, itemOk := rawItem.(string)
+        itemV, itemOk := rawItem.(interface{})
         
         if !itemOk {
           sliceOk = false
@@ -69707,12 +73609,6 @@ IP Address
 
     */
     IPAddress string `json:"ip_address,omitempty"`
-  
-    /*
-Create reverse
-Create reverse record for this IP Address
-    */
-    CreateReverse *bool `json:"create_reverse,omitempty"`
   }
 
 func (t *Dnsarecord) String() string {
@@ -69729,8 +73625,6 @@ func (t *Dnsarecord) String() string {
 type jsonDnsarecord struct {
   
     IPAddress interface{} `json:"ip_address"`
-  
-    CreateReverse interface{} `json:"create_reverse"`
   }
 
 func (out *Dnsarecord) UnmarshalJSON(data []byte) error {
@@ -69771,43 +73665,6 @@ func (out *Dnsarecord) UnmarshalJSON(data []byte) error {
         
       } else {
         return fmt.Errorf("unexpected value for field IPAddress: %v (%v)", raw, reflect.TypeOf(raw))
-      }
-    
-  }
-  
-  if in.CreateReverse != nil {
-    raw := in.CreateReverse
-    plainV, plainOk := raw.(bool)
-    sliceWrapperV, sliceWrapperOk := raw.([]interface{})
-    var sliceV []bool
-    sliceOk := sliceWrapperOk
-    if sliceWrapperOk {
-      for _, rawItem := range sliceWrapperV {
-        
-        itemV, itemOk := rawItem.(bool)
-        
-        if !itemOk {
-          sliceOk = false
-          break
-        }
-        
-        sliceV = append(sliceV, itemV)
-        
-      }
-    }
-    
-      if plainOk {
-        out.CreateReverse = &plainV
-      } else if sliceOk {
-        
-          if len(sliceV) == 1 {
-            out.CreateReverse = &sliceV[0]
-          } else if len(sliceV) > 1 {
-            return fmt.Errorf("unexpected value for field CreateReverse: %v; expected at most one element", raw)
-          }
-        
-      } else {
-        return fmt.Errorf("unexpected value for field CreateReverse: %v (%v)", raw, reflect.TypeOf(raw))
       }
     
   }
@@ -70033,7 +73890,7 @@ type Dnscnamerecord struct {
 Hostname
 A hostname which this alias hostname points to
     */
-    Hostname string `json:"hostname,omitempty"`
+    Hostname interface{} `json:"hostname,omitempty"`
   }
 
 func (t *Dnscnamerecord) String() string {
@@ -70060,14 +73917,14 @@ func (out *Dnscnamerecord) UnmarshalJSON(data []byte) error {
   
   if true {
     raw := in.Hostname
-    plainV, plainOk := raw.(string)
+    plainV, plainOk := raw.(interface{})
     sliceWrapperV, sliceWrapperOk := raw.([]interface{})
-    var sliceV []string
+    var sliceV []interface{}
     sliceOk := sliceWrapperOk
     if sliceWrapperOk {
       for _, rawItem := range sliceWrapperV {
         
-        itemV, itemOk := rawItem.(string)
+        itemV, itemOk := rawItem.(interface{})
         
         if !itemOk {
           sliceOk = false
@@ -70678,7 +74535,7 @@ type Dnsdnamerecord struct {
 Target
 
     */
-    Target string `json:"target,omitempty"`
+    Target interface{} `json:"target,omitempty"`
   }
 
 func (t *Dnsdnamerecord) String() string {
@@ -70705,14 +74562,14 @@ func (out *Dnsdnamerecord) UnmarshalJSON(data []byte) error {
   
   if true {
     raw := in.Target
-    plainV, plainOk := raw.(string)
+    plainV, plainOk := raw.(interface{})
     sliceWrapperV, sliceWrapperOk := raw.([]interface{})
-    var sliceV []string
+    var sliceV []interface{}
     sliceOk := sliceWrapperOk
     if sliceWrapperOk {
       for _, rawItem := range sliceWrapperV {
         
-        itemV, itemOk := rawItem.(string)
+        itemV, itemOk := rawItem.(interface{})
         
         if !itemOk {
           sliceOk = false
@@ -70960,7 +74817,7 @@ type Dnsforwardzone struct {
 Zone name
 Zone name (FQDN)
     */
-    Idnsname string `json:"idnsname,omitempty"`
+    Idnsname interface{} `json:"idnsname,omitempty"`
   
     /*
 Reverse zone IP network
@@ -71027,14 +74884,14 @@ func (out *Dnsforwardzone) UnmarshalJSON(data []byte) error {
   
   if true {
     raw := in.Idnsname
-    plainV, plainOk := raw.(string)
+    plainV, plainOk := raw.(interface{})
     sliceWrapperV, sliceWrapperOk := raw.([]interface{})
-    var sliceV []string
+    var sliceV []interface{}
     sliceOk := sliceWrapperOk
     if sliceWrapperOk {
       for _, rawItem := range sliceWrapperV {
         
-        itemV, itemOk := rawItem.(string)
+        itemV, itemOk := rawItem.(interface{})
         
         if !itemOk {
           sliceOk = false
@@ -71329,7 +75186,7 @@ Preference given to this exchanger. Lower values are more preferred
 Exchanger
 A host willing to act as a key exchanger
     */
-    Exchanger string `json:"exchanger,omitempty"`
+    Exchanger interface{} `json:"exchanger,omitempty"`
   }
 
 func (t *Dnskxrecord) String() string {
@@ -71398,14 +75255,14 @@ func (out *Dnskxrecord) UnmarshalJSON(data []byte) error {
   
   if true {
     raw := in.Exchanger
-    plainV, plainOk := raw.(string)
+    plainV, plainOk := raw.(interface{})
     sliceWrapperV, sliceWrapperOk := raw.([]interface{})
-    var sliceV []string
+    var sliceV []interface{}
     sliceOk := sliceWrapperOk
     if sliceWrapperOk {
       for _, rawItem := range sliceWrapperV {
         
-        itemV, itemOk := rawItem.(string)
+        itemV, itemOk := rawItem.(interface{})
         
         if !itemOk {
           sliceOk = false
@@ -72022,7 +75879,7 @@ Preference given to this exchanger. Lower values are more preferred
 Exchanger
 A host willing to act as a mail exchanger
     */
-    Exchanger string `json:"exchanger,omitempty"`
+    Exchanger interface{} `json:"exchanger,omitempty"`
   }
 
 func (t *Dnsmxrecord) String() string {
@@ -72091,14 +75948,14 @@ func (out *Dnsmxrecord) UnmarshalJSON(data []byte) error {
   
   if true {
     raw := in.Exchanger
-    plainV, plainOk := raw.(string)
+    plainV, plainOk := raw.(interface{})
     sliceWrapperV, sliceWrapperOk := raw.([]interface{})
-    var sliceV []string
+    var sliceV []interface{}
     sliceOk := sliceWrapperOk
     if sliceWrapperOk {
       for _, rawItem := range sliceWrapperV {
         
-        itemV, itemOk := rawItem.(string)
+        itemV, itemOk := rawItem.(interface{})
         
         if !itemOk {
           sliceOk = false
@@ -72455,7 +76312,7 @@ type Dnsnsrecord struct {
 Hostname
 
     */
-    Hostname string `json:"hostname,omitempty"`
+    Hostname interface{} `json:"hostname,omitempty"`
   }
 
 func (t *Dnsnsrecord) String() string {
@@ -72482,14 +76339,14 @@ func (out *Dnsnsrecord) UnmarshalJSON(data []byte) error {
   
   if true {
     raw := in.Hostname
-    plainV, plainOk := raw.(string)
+    plainV, plainOk := raw.(interface{})
     sliceWrapperV, sliceWrapperOk := raw.([]interface{})
-    var sliceV []string
+    var sliceV []interface{}
     sliceOk := sliceWrapperOk
     if sliceWrapperOk {
       for _, rawItem := range sliceWrapperV {
         
-        itemV, itemOk := rawItem.(string)
+        itemV, itemOk := rawItem.(interface{})
         
         if !itemOk {
           sliceOk = false
@@ -72524,7 +76381,7 @@ type Dnsptrrecord struct {
 Hostname
 The hostname this reverse record points to
     */
-    Hostname string `json:"hostname,omitempty"`
+    Hostname interface{} `json:"hostname,omitempty"`
   }
 
 func (t *Dnsptrrecord) String() string {
@@ -72551,14 +76408,14 @@ func (out *Dnsptrrecord) UnmarshalJSON(data []byte) error {
   
   if true {
     raw := in.Hostname
-    plainV, plainOk := raw.(string)
+    plainV, plainOk := raw.(interface{})
     sliceWrapperV, sliceWrapperOk := raw.([]interface{})
-    var sliceV []string
+    var sliceV []interface{}
     sliceOk := sliceWrapperOk
     if sliceWrapperOk {
       for _, rawItem := range sliceWrapperV {
         
-        itemV, itemOk := rawItem.(string)
+        itemV, itemOk := rawItem.(interface{})
         
         if !itemOk {
           sliceOk = false
@@ -72593,7 +76450,7 @@ type Dnsrecord struct {
 Record name
 Record name
     */
-    Idnsname string `json:"idnsname,omitempty"`
+    Idnsname interface{} `json:"idnsname,omitempty"`
   
     /*
 Time to live
@@ -72689,7 +76546,7 @@ AFSDB Subtype
 AFSDB Hostname
 
     */
-    AfsdbPartHostname *string `json:"afsdb_part_hostname,omitempty"`
+    AfsdbPartHostname *interface{} `json:"afsdb_part_hostname,omitempty"`
   
     /*
 APL record
@@ -72737,7 +76594,7 @@ Raw CNAME records
 CNAME Hostname
 A hostname which this alias hostname points to
     */
-    CnamePartHostname *string `json:"cname_part_hostname,omitempty"`
+    CnamePartHostname *interface{} `json:"cname_part_hostname,omitempty"`
   
     /*
 DHCID record
@@ -72785,7 +76642,7 @@ Raw DNAME records
 DNAME Target
 
     */
-    DnamePartTarget *string `json:"dname_part_target,omitempty"`
+    DnamePartTarget *interface{} `json:"dname_part_target,omitempty"`
   
     /*
 DS record
@@ -72851,7 +76708,7 @@ Preference given to this exchanger. Lower values are more preferred
 KX Exchanger
 A host willing to act as a key exchanger
     */
-    KxPartExchanger *string `json:"kx_part_exchanger,omitempty"`
+    KxPartExchanger *interface{} `json:"kx_part_exchanger,omitempty"`
   
     /*
 LOC record
@@ -72947,7 +76804,7 @@ Preference given to this exchanger. Lower values are more preferred
 MX Exchanger
 A host willing to act as a mail exchanger
     */
-    MxPartExchanger *string `json:"mx_part_exchanger,omitempty"`
+    MxPartExchanger *interface{} `json:"mx_part_exchanger,omitempty"`
   
     /*
 NAPTR record
@@ -73001,7 +76858,7 @@ Raw NS records
 NS Hostname
 
     */
-    NsPartHostname *string `json:"ns_part_hostname,omitempty"`
+    NsPartHostname *interface{} `json:"ns_part_hostname,omitempty"`
   
     /*
 NSEC record
@@ -73019,7 +76876,7 @@ Raw PTR records
 PTR Hostname
 The hostname this reverse record points to
     */
-    PtrPartHostname *string `json:"ptr_part_hostname,omitempty"`
+    PtrPartHostname *interface{} `json:"ptr_part_hostname,omitempty"`
   
     /*
 RRSIG record
@@ -73052,14 +76909,14 @@ Raw SRV records
     Srvrecord *[]string `json:"srvrecord,omitempty"`
   
     /*
-SRV Priority
-
+SRV Priority (order)
+Lower number means higher priority. Clients will attempt to contact the server with the lowest-numbered priority they can reach.
     */
     SrvPartPriority *int `json:"srv_part_priority,omitempty"`
   
     /*
 SRV Weight
-
+Relative weight for entries with the same priority.
     */
     SrvPartWeight *int `json:"srv_part_weight,omitempty"`
   
@@ -73073,7 +76930,7 @@ SRV Port
 SRV Target
 The domain name of the target host or '.' if the service is decidedly not available at this domain
     */
-    SrvPartTarget *string `json:"srv_part_target,omitempty"`
+    SrvPartTarget *interface{} `json:"srv_part_target,omitempty"`
   
     /*
 SSHFP record
@@ -73140,6 +76997,30 @@ TXT Text Data
 
     */
     TxtPartData *string `json:"txt_part_data,omitempty"`
+  
+    /*
+URI record
+Raw URI records
+    */
+    Urirecord *[]string `json:"urirecord,omitempty"`
+  
+    /*
+URI Priority (order)
+Lower number means higher priority. Clients will attempt to contact the URI with the lowest-numbered priority they can reach.
+    */
+    URIPartPriority *int `json:"uri_part_priority,omitempty"`
+  
+    /*
+URI Weight
+Relative weight for entries with the same priority.
+    */
+    URIPartWeight *int `json:"uri_part_weight,omitempty"`
+  
+    /*
+URI Target Uniform Resource Identifier
+Target Uniform Resource Identifier according to RFC 3986
+    */
+    URIPartTarget *string `json:"uri_part_target,omitempty"`
   }
 
 func (t *Dnsrecord) String() string {
@@ -73338,6 +77219,14 @@ type jsonDnsrecord struct {
     Txtrecord interface{} `json:"txtrecord"`
   
     TxtPartData interface{} `json:"txt_part_data"`
+  
+    Urirecord interface{} `json:"urirecord"`
+  
+    URIPartPriority interface{} `json:"uri_part_priority"`
+  
+    URIPartWeight interface{} `json:"uri_part_weight"`
+  
+    URIPartTarget interface{} `json:"uri_part_target"`
   }
 
 func (out *Dnsrecord) UnmarshalJSON(data []byte) error {
@@ -73348,14 +77237,14 @@ func (out *Dnsrecord) UnmarshalJSON(data []byte) error {
   
   if true {
     raw := in.Idnsname
-    plainV, plainOk := raw.(string)
+    plainV, plainOk := raw.(interface{})
     sliceWrapperV, sliceWrapperOk := raw.([]interface{})
-    var sliceV []string
+    var sliceV []interface{}
     sliceOk := sliceWrapperOk
     if sliceWrapperOk {
       for _, rawItem := range sliceWrapperV {
         
-        itemV, itemOk := rawItem.(string)
+        itemV, itemOk := rawItem.(interface{})
         
         if !itemOk {
           sliceOk = false
@@ -73927,14 +77816,14 @@ func (out *Dnsrecord) UnmarshalJSON(data []byte) error {
   
   if in.AfsdbPartHostname != nil {
     raw := in.AfsdbPartHostname
-    plainV, plainOk := raw.(string)
+    plainV, plainOk := raw.(interface{})
     sliceWrapperV, sliceWrapperOk := raw.([]interface{})
-    var sliceV []string
+    var sliceV []interface{}
     sliceOk := sliceWrapperOk
     if sliceWrapperOk {
       for _, rawItem := range sliceWrapperV {
         
-        itemV, itemOk := rawItem.(string)
+        itemV, itemOk := rawItem.(interface{})
         
         if !itemOk {
           sliceOk = false
@@ -74220,14 +78109,14 @@ func (out *Dnsrecord) UnmarshalJSON(data []byte) error {
   
   if in.CnamePartHostname != nil {
     raw := in.CnamePartHostname
-    plainV, plainOk := raw.(string)
+    plainV, plainOk := raw.(interface{})
     sliceWrapperV, sliceWrapperOk := raw.([]interface{})
-    var sliceV []string
+    var sliceV []interface{}
     sliceOk := sliceWrapperOk
     if sliceWrapperOk {
       for _, rawItem := range sliceWrapperV {
         
-        itemV, itemOk := rawItem.(string)
+        itemV, itemOk := rawItem.(interface{})
         
         if !itemOk {
           sliceOk = false
@@ -74513,14 +78402,14 @@ func (out *Dnsrecord) UnmarshalJSON(data []byte) error {
   
   if in.DnamePartTarget != nil {
     raw := in.DnamePartTarget
-    plainV, plainOk := raw.(string)
+    plainV, plainOk := raw.(interface{})
     sliceWrapperV, sliceWrapperOk := raw.([]interface{})
-    var sliceV []string
+    var sliceV []interface{}
     sliceOk := sliceWrapperOk
     if sliceWrapperOk {
       for _, rawItem := range sliceWrapperV {
         
-        itemV, itemOk := rawItem.(string)
+        itemV, itemOk := rawItem.(interface{})
         
         if !itemOk {
           sliceOk = false
@@ -74911,14 +78800,14 @@ func (out *Dnsrecord) UnmarshalJSON(data []byte) error {
   
   if in.KxPartExchanger != nil {
     raw := in.KxPartExchanger
-    plainV, plainOk := raw.(string)
+    plainV, plainOk := raw.(interface{})
     sliceWrapperV, sliceWrapperOk := raw.([]interface{})
-    var sliceV []string
+    var sliceV []interface{}
     sliceOk := sliceWrapperOk
     if sliceWrapperOk {
       for _, rawItem := range sliceWrapperV {
         
-        itemV, itemOk := rawItem.(string)
+        itemV, itemOk := rawItem.(interface{})
         
         if !itemOk {
           sliceOk = false
@@ -75513,14 +79402,14 @@ func (out *Dnsrecord) UnmarshalJSON(data []byte) error {
   
   if in.MxPartExchanger != nil {
     raw := in.MxPartExchanger
-    plainV, plainOk := raw.(string)
+    plainV, plainOk := raw.(interface{})
     sliceWrapperV, sliceWrapperOk := raw.([]interface{})
-    var sliceV []string
+    var sliceV []interface{}
     sliceOk := sliceWrapperOk
     if sliceWrapperOk {
       for _, rawItem := range sliceWrapperV {
         
-        itemV, itemOk := rawItem.(string)
+        itemV, itemOk := rawItem.(interface{})
         
         if !itemOk {
           sliceOk = false
@@ -75844,14 +79733,14 @@ func (out *Dnsrecord) UnmarshalJSON(data []byte) error {
   
   if in.NsPartHostname != nil {
     raw := in.NsPartHostname
-    plainV, plainOk := raw.(string)
+    plainV, plainOk := raw.(interface{})
     sliceWrapperV, sliceWrapperOk := raw.([]interface{})
-    var sliceV []string
+    var sliceV []interface{}
     sliceOk := sliceWrapperOk
     if sliceWrapperOk {
       for _, rawItem := range sliceWrapperV {
         
-        itemV, itemOk := rawItem.(string)
+        itemV, itemOk := rawItem.(interface{})
         
         if !itemOk {
           sliceOk = false
@@ -75945,14 +79834,14 @@ func (out *Dnsrecord) UnmarshalJSON(data []byte) error {
   
   if in.PtrPartHostname != nil {
     raw := in.PtrPartHostname
-    plainV, plainOk := raw.(string)
+    plainV, plainOk := raw.(interface{})
     sliceWrapperV, sliceWrapperOk := raw.([]interface{})
-    var sliceV []string
+    var sliceV []interface{}
     sliceOk := sliceWrapperOk
     if sliceWrapperOk {
       for _, rawItem := range sliceWrapperV {
         
-        itemV, itemOk := rawItem.(string)
+        itemV, itemOk := rawItem.(interface{})
         
         if !itemOk {
           sliceOk = false
@@ -76265,14 +80154,14 @@ func (out *Dnsrecord) UnmarshalJSON(data []byte) error {
   
   if in.SrvPartTarget != nil {
     raw := in.SrvPartTarget
-    plainV, plainOk := raw.(string)
+    plainV, plainOk := raw.(interface{})
     sliceWrapperV, sliceWrapperOk := raw.([]interface{})
-    var sliceV []string
+    var sliceV []interface{}
     sliceOk := sliceWrapperOk
     if sliceWrapperOk {
       for _, rawItem := range sliceWrapperV {
         
-        itemV, itemOk := rawItem.(string)
+        itemV, itemOk := rawItem.(interface{})
         
         if !itemOk {
           sliceOk = false
@@ -76711,6 +80600,157 @@ func (out *Dnsrecord) UnmarshalJSON(data []byte) error {
       }
     
   }
+  
+  if in.Urirecord != nil {
+    raw := in.Urirecord
+    plainV, plainOk := raw.(string)
+    sliceWrapperV, sliceWrapperOk := raw.([]interface{})
+    var sliceV []string
+    sliceOk := sliceWrapperOk
+    if sliceWrapperOk {
+      for _, rawItem := range sliceWrapperV {
+        
+        itemV, itemOk := rawItem.(string)
+        
+        if !itemOk {
+          sliceOk = false
+          break
+        }
+        
+        sliceV = append(sliceV, itemV)
+        
+      }
+    }
+    
+      if plainOk {
+        out.Urirecord = &[]string{plainV}
+      } else if sliceOk {
+        
+        out.Urirecord = &sliceV
+      } else {
+        return fmt.Errorf("unexpected value for field Urirecord: %v (%v)", raw, reflect.TypeOf(raw))
+      }
+    
+  }
+  
+  if in.URIPartPriority != nil {
+    raw := in.URIPartPriority
+    plainV, plainOk := raw.(int)
+    sliceWrapperV, sliceWrapperOk := raw.([]interface{})
+    var sliceV []int
+    sliceOk := sliceWrapperOk
+    if sliceWrapperOk {
+      for _, rawItem := range sliceWrapperV {
+        
+        itemV, itemOk := rawItem.(string)
+        
+        if !itemOk {
+          sliceOk = false
+          break
+        }
+        
+        intV, e := strconv.Atoi(itemV)
+        if e != nil {
+          return fmt.Errorf("unexpected value for field URIPartPriority: %v (hit string which couldn't be converted to int)", raw)
+        }
+        sliceV = append(sliceV, intV)
+        
+      }
+    }
+    
+      if plainOk {
+        out.URIPartPriority = &plainV
+      } else if sliceOk {
+        
+          if len(sliceV) == 1 {
+            out.URIPartPriority = &sliceV[0]
+          } else if len(sliceV) > 1 {
+            return fmt.Errorf("unexpected value for field URIPartPriority: %v; expected at most one element", raw)
+          }
+        
+      } else {
+        return fmt.Errorf("unexpected value for field URIPartPriority: %v (%v)", raw, reflect.TypeOf(raw))
+      }
+    
+  }
+  
+  if in.URIPartWeight != nil {
+    raw := in.URIPartWeight
+    plainV, plainOk := raw.(int)
+    sliceWrapperV, sliceWrapperOk := raw.([]interface{})
+    var sliceV []int
+    sliceOk := sliceWrapperOk
+    if sliceWrapperOk {
+      for _, rawItem := range sliceWrapperV {
+        
+        itemV, itemOk := rawItem.(string)
+        
+        if !itemOk {
+          sliceOk = false
+          break
+        }
+        
+        intV, e := strconv.Atoi(itemV)
+        if e != nil {
+          return fmt.Errorf("unexpected value for field URIPartWeight: %v (hit string which couldn't be converted to int)", raw)
+        }
+        sliceV = append(sliceV, intV)
+        
+      }
+    }
+    
+      if plainOk {
+        out.URIPartWeight = &plainV
+      } else if sliceOk {
+        
+          if len(sliceV) == 1 {
+            out.URIPartWeight = &sliceV[0]
+          } else if len(sliceV) > 1 {
+            return fmt.Errorf("unexpected value for field URIPartWeight: %v; expected at most one element", raw)
+          }
+        
+      } else {
+        return fmt.Errorf("unexpected value for field URIPartWeight: %v (%v)", raw, reflect.TypeOf(raw))
+      }
+    
+  }
+  
+  if in.URIPartTarget != nil {
+    raw := in.URIPartTarget
+    plainV, plainOk := raw.(string)
+    sliceWrapperV, sliceWrapperOk := raw.([]interface{})
+    var sliceV []string
+    sliceOk := sliceWrapperOk
+    if sliceWrapperOk {
+      for _, rawItem := range sliceWrapperV {
+        
+        itemV, itemOk := rawItem.(string)
+        
+        if !itemOk {
+          sliceOk = false
+          break
+        }
+        
+        sliceV = append(sliceV, itemV)
+        
+      }
+    }
+    
+      if plainOk {
+        out.URIPartTarget = &plainV
+      } else if sliceOk {
+        
+          if len(sliceV) == 1 {
+            out.URIPartTarget = &sliceV[0]
+          } else if len(sliceV) > 1 {
+            return fmt.Errorf("unexpected value for field URIPartTarget: %v; expected at most one element", raw)
+          }
+        
+      } else {
+        return fmt.Errorf("unexpected value for field URIPartTarget: %v (%v)", raw, reflect.TypeOf(raw))
+      }
+    
+  }
   return nil
 }
 
@@ -76776,7 +80816,7 @@ DNS Server name
 SOA mname override
 SOA mname (authoritative server) override
     */
-    Idnssoamname *string `json:"idnssoamname,omitempty"`
+    Idnssoamname *interface{} `json:"idnssoamname,omitempty"`
   
     /*
 Forwarders
@@ -76857,14 +80897,14 @@ func (out *Dnsserver) UnmarshalJSON(data []byte) error {
   
   if in.Idnssoamname != nil {
     raw := in.Idnssoamname
-    plainV, plainOk := raw.(string)
+    plainV, plainOk := raw.(interface{})
     sliceWrapperV, sliceWrapperOk := raw.([]interface{})
-    var sliceV []string
+    var sliceV []interface{}
     sliceOk := sliceWrapperOk
     if sliceWrapperOk {
       for _, rawItem := range sliceWrapperV {
         
-        itemV, itemOk := rawItem.(string)
+        itemV, itemOk := rawItem.(interface{})
         
         if !itemOk {
           sliceOk = false
@@ -77016,14 +81056,14 @@ func (out *Dnsspfrecord) UnmarshalJSON(data []byte) error {
 type Dnssrvrecord struct {
   
     /*
-Priority
-
+Priority (order)
+Lower number means higher priority. Clients will attempt to contact the server with the lowest-numbered priority they can reach.
     */
     Priority int `json:"priority,omitempty"`
   
     /*
 Weight
-
+Relative weight for entries with the same priority.
     */
     Weight int `json:"weight,omitempty"`
   
@@ -77037,7 +81077,7 @@ Port
 Target
 The domain name of the target host or '.' if the service is decidedly not available at this domain
     */
-    Target string `json:"target,omitempty"`
+    Target interface{} `json:"target,omitempty"`
   }
 
 func (t *Dnssrvrecord) String() string {
@@ -77190,14 +81230,14 @@ func (out *Dnssrvrecord) UnmarshalJSON(data []byte) error {
   
   if true {
     raw := in.Target
-    plainV, plainOk := raw.(string)
+    plainV, plainOk := raw.(interface{})
     sliceWrapperV, sliceWrapperOk := raw.([]interface{})
-    var sliceV []string
+    var sliceV []interface{}
     sliceOk := sliceWrapperOk
     if sliceWrapperOk {
       for _, rawItem := range sliceWrapperV {
         
-        itemV, itemOk := rawItem.(string)
+        itemV, itemOk := rawItem.(interface{})
         
         if !itemOk {
           sliceOk = false
@@ -77673,13 +81713,178 @@ func (out *Dnstxtrecord) UnmarshalJSON(data []byte) error {
   return nil
 }
 
+type Dnsurirecord struct {
+  
+    /*
+Priority (order)
+Lower number means higher priority. Clients will attempt to contact the URI with the lowest-numbered priority they can reach.
+    */
+    Priority int `json:"priority,omitempty"`
+  
+    /*
+Weight
+Relative weight for entries with the same priority.
+    */
+    Weight int `json:"weight,omitempty"`
+  
+    /*
+Target Uniform Resource Identifier
+Target Uniform Resource Identifier according to RFC 3986
+    */
+    Target string `json:"target,omitempty"`
+  }
+
+func (t *Dnsurirecord) String() string {
+  if t == nil {
+    return "<nil>"
+  }
+  b, e := json.Marshal(t)
+  if e != nil {
+    return fmt.Sprintf("Dnsurirecord[failed json.Marshal: %v]", e)
+  }
+  return fmt.Sprintf("Dnsurirecord%v", string(b))
+}
+
+type jsonDnsurirecord struct {
+  
+    Priority interface{} `json:"priority"`
+  
+    Weight interface{} `json:"weight"`
+  
+    Target interface{} `json:"target"`
+  }
+
+func (out *Dnsurirecord) UnmarshalJSON(data []byte) error {
+  var in jsonDnsurirecord
+  if e := json.Unmarshal(data, &in); e != nil {
+    return e
+  }
+  
+  if true {
+    raw := in.Priority
+    plainV, plainOk := raw.(int)
+    sliceWrapperV, sliceWrapperOk := raw.([]interface{})
+    var sliceV []int
+    sliceOk := sliceWrapperOk
+    if sliceWrapperOk {
+      for _, rawItem := range sliceWrapperV {
+        
+        itemV, itemOk := rawItem.(string)
+        
+        if !itemOk {
+          sliceOk = false
+          break
+        }
+        
+        intV, e := strconv.Atoi(itemV)
+        if e != nil {
+          return fmt.Errorf("unexpected value for field Priority: %v (hit string which couldn't be converted to int)", raw)
+        }
+        sliceV = append(sliceV, intV)
+        
+      }
+    }
+    
+      if plainOk {
+        out.Priority = plainV
+      } else if sliceOk {
+        
+          if len(sliceV) != 1 {
+            return fmt.Errorf("unexpected value for field Priority: %v; expected exactly one element", raw)
+          }
+          out.Priority = sliceV[0]
+        
+      } else {
+        return fmt.Errorf("unexpected value for field Priority: %v (%v)", raw, reflect.TypeOf(raw))
+      }
+    
+  }
+  
+  if true {
+    raw := in.Weight
+    plainV, plainOk := raw.(int)
+    sliceWrapperV, sliceWrapperOk := raw.([]interface{})
+    var sliceV []int
+    sliceOk := sliceWrapperOk
+    if sliceWrapperOk {
+      for _, rawItem := range sliceWrapperV {
+        
+        itemV, itemOk := rawItem.(string)
+        
+        if !itemOk {
+          sliceOk = false
+          break
+        }
+        
+        intV, e := strconv.Atoi(itemV)
+        if e != nil {
+          return fmt.Errorf("unexpected value for field Weight: %v (hit string which couldn't be converted to int)", raw)
+        }
+        sliceV = append(sliceV, intV)
+        
+      }
+    }
+    
+      if plainOk {
+        out.Weight = plainV
+      } else if sliceOk {
+        
+          if len(sliceV) != 1 {
+            return fmt.Errorf("unexpected value for field Weight: %v; expected exactly one element", raw)
+          }
+          out.Weight = sliceV[0]
+        
+      } else {
+        return fmt.Errorf("unexpected value for field Weight: %v (%v)", raw, reflect.TypeOf(raw))
+      }
+    
+  }
+  
+  if true {
+    raw := in.Target
+    plainV, plainOk := raw.(string)
+    sliceWrapperV, sliceWrapperOk := raw.([]interface{})
+    var sliceV []string
+    sliceOk := sliceWrapperOk
+    if sliceWrapperOk {
+      for _, rawItem := range sliceWrapperV {
+        
+        itemV, itemOk := rawItem.(string)
+        
+        if !itemOk {
+          sliceOk = false
+          break
+        }
+        
+        sliceV = append(sliceV, itemV)
+        
+      }
+    }
+    
+      if plainOk {
+        out.Target = plainV
+      } else if sliceOk {
+        
+          if len(sliceV) != 1 {
+            return fmt.Errorf("unexpected value for field Target: %v; expected exactly one element", raw)
+          }
+          out.Target = sliceV[0]
+        
+      } else {
+        return fmt.Errorf("unexpected value for field Target: %v (%v)", raw, reflect.TypeOf(raw))
+      }
+    
+  }
+  return nil
+}
+
 type Dnszone struct {
   
     /*
 Zone name
 Zone name (FQDN)
     */
-    Idnsname string `json:"idnsname,omitempty"`
+    Idnsname interface{} `json:"idnsname,omitempty"`
   
     /*
 Reverse zone IP network
@@ -77715,13 +81920,13 @@ Managedby permission
 Authoritative nameserver
 Authoritative nameserver domain name
     */
-    Idnssoamname *string `json:"idnssoamname,omitempty"`
+    Idnssoamname *interface{} `json:"idnssoamname,omitempty"`
   
     /*
 Administrator e-mail address
 Administrator e-mail address
     */
-    Idnssoarname string `json:"idnssoarname,omitempty"`
+    Idnssoarname interface{} `json:"idnssoarname,omitempty"`
   
     /*
 SOA serial
@@ -77882,14 +82087,14 @@ func (out *Dnszone) UnmarshalJSON(data []byte) error {
   
   if true {
     raw := in.Idnsname
-    plainV, plainOk := raw.(string)
+    plainV, plainOk := raw.(interface{})
     sliceWrapperV, sliceWrapperOk := raw.([]interface{})
-    var sliceV []string
+    var sliceV []interface{}
     sliceOk := sliceWrapperOk
     if sliceWrapperOk {
       for _, rawItem := range sliceWrapperV {
         
-        itemV, itemOk := rawItem.(string)
+        itemV, itemOk := rawItem.(interface{})
         
         if !itemOk {
           sliceOk = false
@@ -78097,14 +82302,14 @@ func (out *Dnszone) UnmarshalJSON(data []byte) error {
   
   if in.Idnssoamname != nil {
     raw := in.Idnssoamname
-    plainV, plainOk := raw.(string)
+    plainV, plainOk := raw.(interface{})
     sliceWrapperV, sliceWrapperOk := raw.([]interface{})
-    var sliceV []string
+    var sliceV []interface{}
     sliceOk := sliceWrapperOk
     if sliceWrapperOk {
       for _, rawItem := range sliceWrapperV {
         
-        itemV, itemOk := rawItem.(string)
+        itemV, itemOk := rawItem.(interface{})
         
         if !itemOk {
           sliceOk = false
@@ -78134,14 +82339,14 @@ func (out *Dnszone) UnmarshalJSON(data []byte) error {
   
   if true {
     raw := in.Idnssoarname
-    plainV, plainOk := raw.(string)
+    plainV, plainOk := raw.(interface{})
     sliceWrapperV, sliceWrapperOk := raw.([]interface{})
-    var sliceV []string
+    var sliceV []interface{}
     sliceOk := sliceWrapperOk
     if sliceWrapperOk {
       for _, rawItem := range sliceWrapperV {
         
-        itemV, itemOk := rawItem.(string)
+        itemV, itemOk := rawItem.(interface{})
         
         if !itemOk {
           sliceOk = false
@@ -80697,7 +84902,61 @@ Random password
 Certificate
 Base-64 encoded host certificate
     */
-    Usercertificate *[]string `json:"usercertificate,omitempty"`
+    Usercertificate *[]interface{} `json:"usercertificate,omitempty"`
+  
+    /*
+Subject
+
+    */
+    Subject *string `json:"subject,omitempty"`
+  
+    /*
+Serial Number
+
+    */
+    SerialNumber *string `json:"serial_number,omitempty"`
+  
+    /*
+Serial Number (hex)
+
+    */
+    SerialNumberHex *string `json:"serial_number_hex,omitempty"`
+  
+    /*
+Issuer
+
+    */
+    Issuer *string `json:"issuer,omitempty"`
+  
+    /*
+Not Before
+
+    */
+    ValidNotBefore *string `json:"valid_not_before,omitempty"`
+  
+    /*
+Not After
+
+    */
+    ValidNotAfter *string `json:"valid_not_after,omitempty"`
+  
+    /*
+Fingerprint (SHA1)
+
+    */
+    Sha1Fingerprint *string `json:"sha1_fingerprint,omitempty"`
+  
+    /*
+Fingerprint (SHA256)
+
+    */
+    Sha256Fingerprint *string `json:"sha256_fingerprint,omitempty"`
+  
+    /*
+Revocation reason
+
+    */
+    RevocationReason *string `json:"revocation_reason,omitempty"`
   
     /*
 Principal name
@@ -80842,6 +85101,60 @@ Managed by
 
     */
     ManagedbyHost string `json:"managedby_host,omitempty"`
+  
+    /*
+Managing
+
+    */
+    ManagingHost *string `json:"managing_host,omitempty"`
+  
+    /*
+Users allowed to retrieve keytab
+
+    */
+    IpaallowedtoperformReadKeysUser *string `json:"ipaallowedtoperform_read_keys_user,omitempty"`
+  
+    /*
+Groups allowed to retrieve keytab
+
+    */
+    IpaallowedtoperformReadKeysGroup *string `json:"ipaallowedtoperform_read_keys_group,omitempty"`
+  
+    /*
+Hosts allowed to retrieve keytab
+
+    */
+    IpaallowedtoperformReadKeysHost *string `json:"ipaallowedtoperform_read_keys_host,omitempty"`
+  
+    /*
+Host Groups allowed to retrieve keytab
+
+    */
+    IpaallowedtoperformReadKeysHostgroup *string `json:"ipaallowedtoperform_read_keys_hostgroup,omitempty"`
+  
+    /*
+Users allowed to create keytab
+
+    */
+    IpaallowedtoperformWriteKeysUser *string `json:"ipaallowedtoperform_write_keys_user,omitempty"`
+  
+    /*
+Groups allowed to create keytab
+
+    */
+    IpaallowedtoperformWriteKeysGroup *string `json:"ipaallowedtoperform_write_keys_group,omitempty"`
+  
+    /*
+Hosts allowed to create keytab
+
+    */
+    IpaallowedtoperformWriteKeysHost *string `json:"ipaallowedtoperform_write_keys_host,omitempty"`
+  
+    /*
+Host Groups allowed to create keytab
+
+    */
+    IpaallowedtoperformWriteKeysHostgroup *string `json:"ipaallowedtoperform_write_keys_hostgroup,omitempty"`
   }
 
 func (t *Host) String() string {
@@ -80876,6 +85189,24 @@ type jsonHost struct {
     Randompassword interface{} `json:"randompassword"`
   
     Usercertificate interface{} `json:"usercertificate"`
+  
+    Subject interface{} `json:"subject"`
+  
+    SerialNumber interface{} `json:"serial_number"`
+  
+    SerialNumberHex interface{} `json:"serial_number_hex"`
+  
+    Issuer interface{} `json:"issuer"`
+  
+    ValidNotBefore interface{} `json:"valid_not_before"`
+  
+    ValidNotAfter interface{} `json:"valid_not_after"`
+  
+    Sha1Fingerprint interface{} `json:"sha1_fingerprint"`
+  
+    Sha256Fingerprint interface{} `json:"sha256_fingerprint"`
+  
+    RevocationReason interface{} `json:"revocation_reason"`
   
     Krbcanonicalname interface{} `json:"krbcanonicalname"`
   
@@ -80924,6 +85255,24 @@ type jsonHost struct {
     HasKeytab interface{} `json:"has_keytab"`
   
     ManagedbyHost interface{} `json:"managedby_host"`
+  
+    ManagingHost interface{} `json:"managing_host"`
+  
+    IpaallowedtoperformReadKeysUser interface{} `json:"ipaallowedtoperform_read_keys_user"`
+  
+    IpaallowedtoperformReadKeysGroup interface{} `json:"ipaallowedtoperform_read_keys_group"`
+  
+    IpaallowedtoperformReadKeysHost interface{} `json:"ipaallowedtoperform_read_keys_host"`
+  
+    IpaallowedtoperformReadKeysHostgroup interface{} `json:"ipaallowedtoperform_read_keys_hostgroup"`
+  
+    IpaallowedtoperformWriteKeysUser interface{} `json:"ipaallowedtoperform_write_keys_user"`
+  
+    IpaallowedtoperformWriteKeysGroup interface{} `json:"ipaallowedtoperform_write_keys_group"`
+  
+    IpaallowedtoperformWriteKeysHost interface{} `json:"ipaallowedtoperform_write_keys_host"`
+  
+    IpaallowedtoperformWriteKeysHostgroup interface{} `json:"ipaallowedtoperform_write_keys_hostgroup"`
   }
 
 func (out *Host) UnmarshalJSON(data []byte) error {
@@ -81266,6 +85615,38 @@ func (out *Host) UnmarshalJSON(data []byte) error {
   
   if in.Usercertificate != nil {
     raw := in.Usercertificate
+    plainV, plainOk := raw.(interface{})
+    sliceWrapperV, sliceWrapperOk := raw.([]interface{})
+    var sliceV []interface{}
+    sliceOk := sliceWrapperOk
+    if sliceWrapperOk {
+      for _, rawItem := range sliceWrapperV {
+        
+        itemV, itemOk := rawItem.(interface{})
+        
+        if !itemOk {
+          sliceOk = false
+          break
+        }
+        
+        sliceV = append(sliceV, itemV)
+        
+      }
+    }
+    
+      if plainOk {
+        out.Usercertificate = &[]interface{}{plainV}
+      } else if sliceOk {
+        
+        out.Usercertificate = &sliceV
+      } else {
+        return fmt.Errorf("unexpected value for field Usercertificate: %v (%v)", raw, reflect.TypeOf(raw))
+      }
+    
+  }
+  
+  if in.Subject != nil {
+    raw := in.Subject
     plainV, plainOk := raw.(string)
     sliceWrapperV, sliceWrapperOk := raw.([]interface{})
     var sliceV []string
@@ -81286,12 +85667,313 @@ func (out *Host) UnmarshalJSON(data []byte) error {
     }
     
       if plainOk {
-        out.Usercertificate = &[]string{plainV}
+        out.Subject = &plainV
       } else if sliceOk {
         
-        out.Usercertificate = &sliceV
+          if len(sliceV) == 1 {
+            out.Subject = &sliceV[0]
+          } else if len(sliceV) > 1 {
+            return fmt.Errorf("unexpected value for field Subject: %v; expected at most one element", raw)
+          }
+        
       } else {
-        return fmt.Errorf("unexpected value for field Usercertificate: %v (%v)", raw, reflect.TypeOf(raw))
+        return fmt.Errorf("unexpected value for field Subject: %v (%v)", raw, reflect.TypeOf(raw))
+      }
+    
+  }
+  
+  if in.SerialNumber != nil {
+    raw := in.SerialNumber
+    plainV, plainOk := raw.(string)
+    sliceWrapperV, sliceWrapperOk := raw.([]interface{})
+    var sliceV []string
+    sliceOk := sliceWrapperOk
+    if sliceWrapperOk {
+      for _, rawItem := range sliceWrapperV {
+        
+        itemV, itemOk := rawItem.(string)
+        
+        if !itemOk {
+          sliceOk = false
+          break
+        }
+        
+        sliceV = append(sliceV, itemV)
+        
+      }
+    }
+    
+      if plainOk {
+        out.SerialNumber = &plainV
+      } else if sliceOk {
+        
+          if len(sliceV) == 1 {
+            out.SerialNumber = &sliceV[0]
+          } else if len(sliceV) > 1 {
+            return fmt.Errorf("unexpected value for field SerialNumber: %v; expected at most one element", raw)
+          }
+        
+      } else {
+        return fmt.Errorf("unexpected value for field SerialNumber: %v (%v)", raw, reflect.TypeOf(raw))
+      }
+    
+  }
+  
+  if in.SerialNumberHex != nil {
+    raw := in.SerialNumberHex
+    plainV, plainOk := raw.(string)
+    sliceWrapperV, sliceWrapperOk := raw.([]interface{})
+    var sliceV []string
+    sliceOk := sliceWrapperOk
+    if sliceWrapperOk {
+      for _, rawItem := range sliceWrapperV {
+        
+        itemV, itemOk := rawItem.(string)
+        
+        if !itemOk {
+          sliceOk = false
+          break
+        }
+        
+        sliceV = append(sliceV, itemV)
+        
+      }
+    }
+    
+      if plainOk {
+        out.SerialNumberHex = &plainV
+      } else if sliceOk {
+        
+          if len(sliceV) == 1 {
+            out.SerialNumberHex = &sliceV[0]
+          } else if len(sliceV) > 1 {
+            return fmt.Errorf("unexpected value for field SerialNumberHex: %v; expected at most one element", raw)
+          }
+        
+      } else {
+        return fmt.Errorf("unexpected value for field SerialNumberHex: %v (%v)", raw, reflect.TypeOf(raw))
+      }
+    
+  }
+  
+  if in.Issuer != nil {
+    raw := in.Issuer
+    plainV, plainOk := raw.(string)
+    sliceWrapperV, sliceWrapperOk := raw.([]interface{})
+    var sliceV []string
+    sliceOk := sliceWrapperOk
+    if sliceWrapperOk {
+      for _, rawItem := range sliceWrapperV {
+        
+        itemV, itemOk := rawItem.(string)
+        
+        if !itemOk {
+          sliceOk = false
+          break
+        }
+        
+        sliceV = append(sliceV, itemV)
+        
+      }
+    }
+    
+      if plainOk {
+        out.Issuer = &plainV
+      } else if sliceOk {
+        
+          if len(sliceV) == 1 {
+            out.Issuer = &sliceV[0]
+          } else if len(sliceV) > 1 {
+            return fmt.Errorf("unexpected value for field Issuer: %v; expected at most one element", raw)
+          }
+        
+      } else {
+        return fmt.Errorf("unexpected value for field Issuer: %v (%v)", raw, reflect.TypeOf(raw))
+      }
+    
+  }
+  
+  if in.ValidNotBefore != nil {
+    raw := in.ValidNotBefore
+    plainV, plainOk := raw.(string)
+    sliceWrapperV, sliceWrapperOk := raw.([]interface{})
+    var sliceV []string
+    sliceOk := sliceWrapperOk
+    if sliceWrapperOk {
+      for _, rawItem := range sliceWrapperV {
+        
+        itemV, itemOk := rawItem.(string)
+        
+        if !itemOk {
+          sliceOk = false
+          break
+        }
+        
+        sliceV = append(sliceV, itemV)
+        
+      }
+    }
+    
+      if plainOk {
+        out.ValidNotBefore = &plainV
+      } else if sliceOk {
+        
+          if len(sliceV) == 1 {
+            out.ValidNotBefore = &sliceV[0]
+          } else if len(sliceV) > 1 {
+            return fmt.Errorf("unexpected value for field ValidNotBefore: %v; expected at most one element", raw)
+          }
+        
+      } else {
+        return fmt.Errorf("unexpected value for field ValidNotBefore: %v (%v)", raw, reflect.TypeOf(raw))
+      }
+    
+  }
+  
+  if in.ValidNotAfter != nil {
+    raw := in.ValidNotAfter
+    plainV, plainOk := raw.(string)
+    sliceWrapperV, sliceWrapperOk := raw.([]interface{})
+    var sliceV []string
+    sliceOk := sliceWrapperOk
+    if sliceWrapperOk {
+      for _, rawItem := range sliceWrapperV {
+        
+        itemV, itemOk := rawItem.(string)
+        
+        if !itemOk {
+          sliceOk = false
+          break
+        }
+        
+        sliceV = append(sliceV, itemV)
+        
+      }
+    }
+    
+      if plainOk {
+        out.ValidNotAfter = &plainV
+      } else if sliceOk {
+        
+          if len(sliceV) == 1 {
+            out.ValidNotAfter = &sliceV[0]
+          } else if len(sliceV) > 1 {
+            return fmt.Errorf("unexpected value for field ValidNotAfter: %v; expected at most one element", raw)
+          }
+        
+      } else {
+        return fmt.Errorf("unexpected value for field ValidNotAfter: %v (%v)", raw, reflect.TypeOf(raw))
+      }
+    
+  }
+  
+  if in.Sha1Fingerprint != nil {
+    raw := in.Sha1Fingerprint
+    plainV, plainOk := raw.(string)
+    sliceWrapperV, sliceWrapperOk := raw.([]interface{})
+    var sliceV []string
+    sliceOk := sliceWrapperOk
+    if sliceWrapperOk {
+      for _, rawItem := range sliceWrapperV {
+        
+        itemV, itemOk := rawItem.(string)
+        
+        if !itemOk {
+          sliceOk = false
+          break
+        }
+        
+        sliceV = append(sliceV, itemV)
+        
+      }
+    }
+    
+      if plainOk {
+        out.Sha1Fingerprint = &plainV
+      } else if sliceOk {
+        
+          if len(sliceV) == 1 {
+            out.Sha1Fingerprint = &sliceV[0]
+          } else if len(sliceV) > 1 {
+            return fmt.Errorf("unexpected value for field Sha1Fingerprint: %v; expected at most one element", raw)
+          }
+        
+      } else {
+        return fmt.Errorf("unexpected value for field Sha1Fingerprint: %v (%v)", raw, reflect.TypeOf(raw))
+      }
+    
+  }
+  
+  if in.Sha256Fingerprint != nil {
+    raw := in.Sha256Fingerprint
+    plainV, plainOk := raw.(string)
+    sliceWrapperV, sliceWrapperOk := raw.([]interface{})
+    var sliceV []string
+    sliceOk := sliceWrapperOk
+    if sliceWrapperOk {
+      for _, rawItem := range sliceWrapperV {
+        
+        itemV, itemOk := rawItem.(string)
+        
+        if !itemOk {
+          sliceOk = false
+          break
+        }
+        
+        sliceV = append(sliceV, itemV)
+        
+      }
+    }
+    
+      if plainOk {
+        out.Sha256Fingerprint = &plainV
+      } else if sliceOk {
+        
+          if len(sliceV) == 1 {
+            out.Sha256Fingerprint = &sliceV[0]
+          } else if len(sliceV) > 1 {
+            return fmt.Errorf("unexpected value for field Sha256Fingerprint: %v; expected at most one element", raw)
+          }
+        
+      } else {
+        return fmt.Errorf("unexpected value for field Sha256Fingerprint: %v (%v)", raw, reflect.TypeOf(raw))
+      }
+    
+  }
+  
+  if in.RevocationReason != nil {
+    raw := in.RevocationReason
+    plainV, plainOk := raw.(string)
+    sliceWrapperV, sliceWrapperOk := raw.([]interface{})
+    var sliceV []string
+    sliceOk := sliceWrapperOk
+    if sliceWrapperOk {
+      for _, rawItem := range sliceWrapperV {
+        
+        itemV, itemOk := rawItem.(string)
+        
+        if !itemOk {
+          sliceOk = false
+          break
+        }
+        
+        sliceV = append(sliceV, itemV)
+        
+      }
+    }
+    
+      if plainOk {
+        out.RevocationReason = &plainV
+      } else if sliceOk {
+        
+          if len(sliceV) == 1 {
+            out.RevocationReason = &sliceV[0]
+          } else if len(sliceV) > 1 {
+            return fmt.Errorf("unexpected value for field RevocationReason: %v; expected at most one element", raw)
+          }
+        
+      } else {
+        return fmt.Errorf("unexpected value for field RevocationReason: %v (%v)", raw, reflect.TypeOf(raw))
       }
     
   }
@@ -82124,6 +86806,339 @@ func (out *Host) UnmarshalJSON(data []byte) error {
         
       } else {
         return fmt.Errorf("unexpected value for field ManagedbyHost: %v (%v)", raw, reflect.TypeOf(raw))
+      }
+    
+  }
+  
+  if in.ManagingHost != nil {
+    raw := in.ManagingHost
+    plainV, plainOk := raw.(string)
+    sliceWrapperV, sliceWrapperOk := raw.([]interface{})
+    var sliceV []string
+    sliceOk := sliceWrapperOk
+    if sliceWrapperOk {
+      for _, rawItem := range sliceWrapperV {
+        
+        itemV, itemOk := rawItem.(string)
+        
+        if !itemOk {
+          sliceOk = false
+          break
+        }
+        
+        sliceV = append(sliceV, itemV)
+        
+      }
+    }
+    
+      if plainOk {
+        out.ManagingHost = &plainV
+      } else if sliceOk {
+        
+          if len(sliceV) == 1 {
+            out.ManagingHost = &sliceV[0]
+          } else if len(sliceV) > 1 {
+            return fmt.Errorf("unexpected value for field ManagingHost: %v; expected at most one element", raw)
+          }
+        
+      } else {
+        return fmt.Errorf("unexpected value for field ManagingHost: %v (%v)", raw, reflect.TypeOf(raw))
+      }
+    
+  }
+  
+  if in.IpaallowedtoperformReadKeysUser != nil {
+    raw := in.IpaallowedtoperformReadKeysUser
+    plainV, plainOk := raw.(string)
+    sliceWrapperV, sliceWrapperOk := raw.([]interface{})
+    var sliceV []string
+    sliceOk := sliceWrapperOk
+    if sliceWrapperOk {
+      for _, rawItem := range sliceWrapperV {
+        
+        itemV, itemOk := rawItem.(string)
+        
+        if !itemOk {
+          sliceOk = false
+          break
+        }
+        
+        sliceV = append(sliceV, itemV)
+        
+      }
+    }
+    
+      if plainOk {
+        out.IpaallowedtoperformReadKeysUser = &plainV
+      } else if sliceOk {
+        
+          if len(sliceV) == 1 {
+            out.IpaallowedtoperformReadKeysUser = &sliceV[0]
+          } else if len(sliceV) > 1 {
+            return fmt.Errorf("unexpected value for field IpaallowedtoperformReadKeysUser: %v; expected at most one element", raw)
+          }
+        
+      } else {
+        return fmt.Errorf("unexpected value for field IpaallowedtoperformReadKeysUser: %v (%v)", raw, reflect.TypeOf(raw))
+      }
+    
+  }
+  
+  if in.IpaallowedtoperformReadKeysGroup != nil {
+    raw := in.IpaallowedtoperformReadKeysGroup
+    plainV, plainOk := raw.(string)
+    sliceWrapperV, sliceWrapperOk := raw.([]interface{})
+    var sliceV []string
+    sliceOk := sliceWrapperOk
+    if sliceWrapperOk {
+      for _, rawItem := range sliceWrapperV {
+        
+        itemV, itemOk := rawItem.(string)
+        
+        if !itemOk {
+          sliceOk = false
+          break
+        }
+        
+        sliceV = append(sliceV, itemV)
+        
+      }
+    }
+    
+      if plainOk {
+        out.IpaallowedtoperformReadKeysGroup = &plainV
+      } else if sliceOk {
+        
+          if len(sliceV) == 1 {
+            out.IpaallowedtoperformReadKeysGroup = &sliceV[0]
+          } else if len(sliceV) > 1 {
+            return fmt.Errorf("unexpected value for field IpaallowedtoperformReadKeysGroup: %v; expected at most one element", raw)
+          }
+        
+      } else {
+        return fmt.Errorf("unexpected value for field IpaallowedtoperformReadKeysGroup: %v (%v)", raw, reflect.TypeOf(raw))
+      }
+    
+  }
+  
+  if in.IpaallowedtoperformReadKeysHost != nil {
+    raw := in.IpaallowedtoperformReadKeysHost
+    plainV, plainOk := raw.(string)
+    sliceWrapperV, sliceWrapperOk := raw.([]interface{})
+    var sliceV []string
+    sliceOk := sliceWrapperOk
+    if sliceWrapperOk {
+      for _, rawItem := range sliceWrapperV {
+        
+        itemV, itemOk := rawItem.(string)
+        
+        if !itemOk {
+          sliceOk = false
+          break
+        }
+        
+        sliceV = append(sliceV, itemV)
+        
+      }
+    }
+    
+      if plainOk {
+        out.IpaallowedtoperformReadKeysHost = &plainV
+      } else if sliceOk {
+        
+          if len(sliceV) == 1 {
+            out.IpaallowedtoperformReadKeysHost = &sliceV[0]
+          } else if len(sliceV) > 1 {
+            return fmt.Errorf("unexpected value for field IpaallowedtoperformReadKeysHost: %v; expected at most one element", raw)
+          }
+        
+      } else {
+        return fmt.Errorf("unexpected value for field IpaallowedtoperformReadKeysHost: %v (%v)", raw, reflect.TypeOf(raw))
+      }
+    
+  }
+  
+  if in.IpaallowedtoperformReadKeysHostgroup != nil {
+    raw := in.IpaallowedtoperformReadKeysHostgroup
+    plainV, plainOk := raw.(string)
+    sliceWrapperV, sliceWrapperOk := raw.([]interface{})
+    var sliceV []string
+    sliceOk := sliceWrapperOk
+    if sliceWrapperOk {
+      for _, rawItem := range sliceWrapperV {
+        
+        itemV, itemOk := rawItem.(string)
+        
+        if !itemOk {
+          sliceOk = false
+          break
+        }
+        
+        sliceV = append(sliceV, itemV)
+        
+      }
+    }
+    
+      if plainOk {
+        out.IpaallowedtoperformReadKeysHostgroup = &plainV
+      } else if sliceOk {
+        
+          if len(sliceV) == 1 {
+            out.IpaallowedtoperformReadKeysHostgroup = &sliceV[0]
+          } else if len(sliceV) > 1 {
+            return fmt.Errorf("unexpected value for field IpaallowedtoperformReadKeysHostgroup: %v; expected at most one element", raw)
+          }
+        
+      } else {
+        return fmt.Errorf("unexpected value for field IpaallowedtoperformReadKeysHostgroup: %v (%v)", raw, reflect.TypeOf(raw))
+      }
+    
+  }
+  
+  if in.IpaallowedtoperformWriteKeysUser != nil {
+    raw := in.IpaallowedtoperformWriteKeysUser
+    plainV, plainOk := raw.(string)
+    sliceWrapperV, sliceWrapperOk := raw.([]interface{})
+    var sliceV []string
+    sliceOk := sliceWrapperOk
+    if sliceWrapperOk {
+      for _, rawItem := range sliceWrapperV {
+        
+        itemV, itemOk := rawItem.(string)
+        
+        if !itemOk {
+          sliceOk = false
+          break
+        }
+        
+        sliceV = append(sliceV, itemV)
+        
+      }
+    }
+    
+      if plainOk {
+        out.IpaallowedtoperformWriteKeysUser = &plainV
+      } else if sliceOk {
+        
+          if len(sliceV) == 1 {
+            out.IpaallowedtoperformWriteKeysUser = &sliceV[0]
+          } else if len(sliceV) > 1 {
+            return fmt.Errorf("unexpected value for field IpaallowedtoperformWriteKeysUser: %v; expected at most one element", raw)
+          }
+        
+      } else {
+        return fmt.Errorf("unexpected value for field IpaallowedtoperformWriteKeysUser: %v (%v)", raw, reflect.TypeOf(raw))
+      }
+    
+  }
+  
+  if in.IpaallowedtoperformWriteKeysGroup != nil {
+    raw := in.IpaallowedtoperformWriteKeysGroup
+    plainV, plainOk := raw.(string)
+    sliceWrapperV, sliceWrapperOk := raw.([]interface{})
+    var sliceV []string
+    sliceOk := sliceWrapperOk
+    if sliceWrapperOk {
+      for _, rawItem := range sliceWrapperV {
+        
+        itemV, itemOk := rawItem.(string)
+        
+        if !itemOk {
+          sliceOk = false
+          break
+        }
+        
+        sliceV = append(sliceV, itemV)
+        
+      }
+    }
+    
+      if plainOk {
+        out.IpaallowedtoperformWriteKeysGroup = &plainV
+      } else if sliceOk {
+        
+          if len(sliceV) == 1 {
+            out.IpaallowedtoperformWriteKeysGroup = &sliceV[0]
+          } else if len(sliceV) > 1 {
+            return fmt.Errorf("unexpected value for field IpaallowedtoperformWriteKeysGroup: %v; expected at most one element", raw)
+          }
+        
+      } else {
+        return fmt.Errorf("unexpected value for field IpaallowedtoperformWriteKeysGroup: %v (%v)", raw, reflect.TypeOf(raw))
+      }
+    
+  }
+  
+  if in.IpaallowedtoperformWriteKeysHost != nil {
+    raw := in.IpaallowedtoperformWriteKeysHost
+    plainV, plainOk := raw.(string)
+    sliceWrapperV, sliceWrapperOk := raw.([]interface{})
+    var sliceV []string
+    sliceOk := sliceWrapperOk
+    if sliceWrapperOk {
+      for _, rawItem := range sliceWrapperV {
+        
+        itemV, itemOk := rawItem.(string)
+        
+        if !itemOk {
+          sliceOk = false
+          break
+        }
+        
+        sliceV = append(sliceV, itemV)
+        
+      }
+    }
+    
+      if plainOk {
+        out.IpaallowedtoperformWriteKeysHost = &plainV
+      } else if sliceOk {
+        
+          if len(sliceV) == 1 {
+            out.IpaallowedtoperformWriteKeysHost = &sliceV[0]
+          } else if len(sliceV) > 1 {
+            return fmt.Errorf("unexpected value for field IpaallowedtoperformWriteKeysHost: %v; expected at most one element", raw)
+          }
+        
+      } else {
+        return fmt.Errorf("unexpected value for field IpaallowedtoperformWriteKeysHost: %v (%v)", raw, reflect.TypeOf(raw))
+      }
+    
+  }
+  
+  if in.IpaallowedtoperformWriteKeysHostgroup != nil {
+    raw := in.IpaallowedtoperformWriteKeysHostgroup
+    plainV, plainOk := raw.(string)
+    sliceWrapperV, sliceWrapperOk := raw.([]interface{})
+    var sliceV []string
+    sliceOk := sliceWrapperOk
+    if sliceWrapperOk {
+      for _, rawItem := range sliceWrapperV {
+        
+        itemV, itemOk := rawItem.(string)
+        
+        if !itemOk {
+          sliceOk = false
+          break
+        }
+        
+        sliceV = append(sliceV, itemV)
+        
+      }
+    }
+    
+      if plainOk {
+        out.IpaallowedtoperformWriteKeysHostgroup = &plainV
+      } else if sliceOk {
+        
+          if len(sliceV) == 1 {
+            out.IpaallowedtoperformWriteKeysHostgroup = &sliceV[0]
+          } else if len(sliceV) > 1 {
+            return fmt.Errorf("unexpected value for field IpaallowedtoperformWriteKeysHostgroup: %v; expected at most one element", raw)
+          }
+        
+      } else {
+        return fmt.Errorf("unexpected value for field IpaallowedtoperformWriteKeysHostgroup: %v (%v)", raw, reflect.TypeOf(raw))
       }
     
   }
@@ -82983,7 +87998,7 @@ SSH public key
 Certificate
 Base-64 encoded user certificate
     */
-    Usercertificate *[]string `json:"usercertificate,omitempty"`
+    Usercertificate *[]interface{} `json:"usercertificate,omitempty"`
   }
 
 func (t *Idoverrideuser) String() string {
@@ -83402,14 +88417,14 @@ func (out *Idoverrideuser) UnmarshalJSON(data []byte) error {
   
   if in.Usercertificate != nil {
     raw := in.Usercertificate
-    plainV, plainOk := raw.(string)
+    plainV, plainOk := raw.(interface{})
     sliceWrapperV, sliceWrapperOk := raw.([]interface{})
-    var sliceV []string
+    var sliceV []interface{}
     sliceOk := sliceWrapperOk
     if sliceWrapperOk {
       for _, rawItem := range sliceWrapperV {
         
-        itemV, itemOk := rawItem.(string)
+        itemV, itemOk := rawItem.(interface{})
         
         if !itemOk {
           sliceOk = false
@@ -83422,7 +88437,7 @@ func (out *Idoverrideuser) UnmarshalJSON(data []byte) error {
     }
     
       if plainOk {
-        out.Usercertificate = &[]string{plainV}
+        out.Usercertificate = &[]interface{}{plainV}
       } else if sliceOk {
         
         out.Usercertificate = &sliceV
@@ -83480,7 +88495,7 @@ Name of the trusted domain
   
     /*
 Range type
-ID range type, one of ipa-ad-trust-posix, ipa-ad-trust, ipa-local
+ID range type, one of ipa-ad-trust, ipa-ad-trust-posix, ipa-local
     */
     Iparangetype *string `json:"iparangetype,omitempty"`
   }
@@ -83863,6 +88878,12 @@ Hosts the view applies to
 
     */
     Appliedtohosts string `json:"appliedtohosts,omitempty"`
+  
+    /*
+Domain resolution order
+colon-separated list of domains used for short name qualification
+    */
+    Ipadomainresolutionorder *string `json:"ipadomainresolutionorder,omitempty"`
   }
 
 func (t *Idview) String() string {
@@ -83887,6 +88908,8 @@ type jsonIdview struct {
     Groupoverrides interface{} `json:"groupoverrides"`
   
     Appliedtohosts interface{} `json:"appliedtohosts"`
+  
+    Ipadomainresolutionorder interface{} `json:"ipadomainresolutionorder"`
   }
 
 func (out *Idview) UnmarshalJSON(data []byte) error {
@@ -84075,6 +89098,43 @@ func (out *Idview) UnmarshalJSON(data []byte) error {
       }
     
   }
+  
+  if in.Ipadomainresolutionorder != nil {
+    raw := in.Ipadomainresolutionorder
+    plainV, plainOk := raw.(string)
+    sliceWrapperV, sliceWrapperOk := raw.([]interface{})
+    var sliceV []string
+    sliceOk := sliceWrapperOk
+    if sliceWrapperOk {
+      for _, rawItem := range sliceWrapperV {
+        
+        itemV, itemOk := rawItem.(string)
+        
+        if !itemOk {
+          sliceOk = false
+          break
+        }
+        
+        sliceV = append(sliceV, itemV)
+        
+      }
+    }
+    
+      if plainOk {
+        out.Ipadomainresolutionorder = &plainV
+      } else if sliceOk {
+        
+          if len(sliceV) == 1 {
+            out.Ipadomainresolutionorder = &sliceV[0]
+          } else if len(sliceV) > 1 {
+            return fmt.Errorf("unexpected value for field Ipadomainresolutionorder: %v; expected at most one element", raw)
+          }
+        
+      } else {
+        return fmt.Errorf("unexpected value for field Ipadomainresolutionorder: %v (%v)", raw, reflect.TypeOf(raw))
+      }
+    
+  }
   return nil
 }
 
@@ -84252,7 +89312,7 @@ type Location struct {
 Location name
 IPA location name
     */
-    Idnsname string `json:"idnsname,omitempty"`
+    Idnsname interface{} `json:"idnsname,omitempty"`
   
     /*
 Description
@@ -84303,14 +89363,14 @@ func (out *Location) UnmarshalJSON(data []byte) error {
   
   if true {
     raw := in.Idnsname
-    plainV, plainOk := raw.(string)
+    plainV, plainOk := raw.(interface{})
     sliceWrapperV, sliceWrapperOk := raw.([]interface{})
-    var sliceV []string
+    var sliceV []interface{}
     sliceOk := sliceWrapperOk
     if sliceWrapperOk {
       for _, rawItem := range sliceWrapperV {
         
-        itemV, itemOk := rawItem.(string)
+        itemV, itemOk := rawItem.(interface{})
         
         if !itemOk {
           sliceOk = false
@@ -88653,6 +93713,18 @@ func (out *Permission) UnmarshalJSON(data []byte) error {
 }
 
 type Pkinit struct {
+  
+    /*
+Server name
+IPA server hostname
+    */
+    ServerServer *string `json:"server_server,omitempty"`
+  
+    /*
+PKINIT status
+Whether PKINIT is enabled or disabled
+    */
+    Status *string `json:"status,omitempty"`
   }
 
 func (t *Pkinit) String() string {
@@ -88667,12 +93739,90 @@ func (t *Pkinit) String() string {
 }
 
 type jsonPkinit struct {
+  
+    ServerServer interface{} `json:"server_server"`
+  
+    Status interface{} `json:"status"`
   }
 
 func (out *Pkinit) UnmarshalJSON(data []byte) error {
   var in jsonPkinit
   if e := json.Unmarshal(data, &in); e != nil {
     return e
+  }
+  
+  if in.ServerServer != nil {
+    raw := in.ServerServer
+    plainV, plainOk := raw.(string)
+    sliceWrapperV, sliceWrapperOk := raw.([]interface{})
+    var sliceV []string
+    sliceOk := sliceWrapperOk
+    if sliceWrapperOk {
+      for _, rawItem := range sliceWrapperV {
+        
+        itemV, itemOk := rawItem.(string)
+        
+        if !itemOk {
+          sliceOk = false
+          break
+        }
+        
+        sliceV = append(sliceV, itemV)
+        
+      }
+    }
+    
+      if plainOk {
+        out.ServerServer = &plainV
+      } else if sliceOk {
+        
+          if len(sliceV) == 1 {
+            out.ServerServer = &sliceV[0]
+          } else if len(sliceV) > 1 {
+            return fmt.Errorf("unexpected value for field ServerServer: %v; expected at most one element", raw)
+          }
+        
+      } else {
+        return fmt.Errorf("unexpected value for field ServerServer: %v (%v)", raw, reflect.TypeOf(raw))
+      }
+    
+  }
+  
+  if in.Status != nil {
+    raw := in.Status
+    plainV, plainOk := raw.(string)
+    sliceWrapperV, sliceWrapperOk := raw.([]interface{})
+    var sliceV []string
+    sliceOk := sliceWrapperOk
+    if sliceWrapperOk {
+      for _, rawItem := range sliceWrapperV {
+        
+        itemV, itemOk := rawItem.(string)
+        
+        if !itemOk {
+          sliceOk = false
+          break
+        }
+        
+        sliceV = append(sliceV, itemV)
+        
+      }
+    }
+    
+      if plainOk {
+        out.Status = &plainV
+      } else if sliceOk {
+        
+          if len(sliceV) == 1 {
+            out.Status = &sliceV[0]
+          } else if len(sliceV) > 1 {
+            return fmt.Errorf("unexpected value for field Status: %v; expected at most one element", raw)
+          }
+        
+      } else {
+        return fmt.Errorf("unexpected value for field Status: %v (%v)", raw, reflect.TypeOf(raw))
+      }
+    
   }
   return nil
 }
@@ -89399,7 +94549,7 @@ A description of this RADIUS proxy server
 Server
 The hostname or IP (with or without port)
     */
-    Ipatokenradiusserver []string `json:"ipatokenradiusserver,omitempty"`
+    Ipatokenradiusserver string `json:"ipatokenradiusserver,omitempty"`
   
     /*
 Secret
@@ -89555,14 +94705,14 @@ func (out *Radiusproxy) UnmarshalJSON(data []byte) error {
     }
     
       if plainOk {
-        out.Ipatokenradiusserver = []string{plainV}
+        out.Ipatokenradiusserver = plainV
       } else if sliceOk {
         
-          if len(sliceV) < 1 {
-            return fmt.Errorf("unexpected value for field Ipatokenradiusserver: %v; expected at least one element", raw)
+          if len(sliceV) != 1 {
+            return fmt.Errorf("unexpected value for field Ipatokenradiusserver: %v; expected exactly one element", raw)
           }
+          out.Ipatokenradiusserver = sliceV[0]
         
-        out.Ipatokenradiusserver = sliceV
       } else {
         return fmt.Errorf("unexpected value for field Ipatokenradiusserver: %v (%v)", raw, reflect.TypeOf(raw))
       }
@@ -90990,7 +96140,7 @@ Maximum domain level
 Location
 Server location
     */
-    IpalocationLocation *string `json:"ipalocation_location,omitempty"`
+    IpalocationLocation *interface{} `json:"ipalocation_location,omitempty"`
   
     /*
 Service weight
@@ -91231,14 +96381,14 @@ func (out *Server) UnmarshalJSON(data []byte) error {
   
   if in.IpalocationLocation != nil {
     raw := in.IpalocationLocation
-    plainV, plainOk := raw.(string)
+    plainV, plainOk := raw.(interface{})
     sliceWrapperV, sliceWrapperOk := raw.([]interface{})
-    var sliceV []string
+    var sliceV []interface{}
     sliceOk := sliceWrapperOk
     if sliceWrapperOk {
       for _, rawItem := range sliceWrapperV {
         
-        itemV, itemOk := rawItem.(string)
+        itemV, itemOk := rawItem.(interface{})
         
         if !itemOk {
           sliceOk = false
@@ -91553,7 +96703,7 @@ Service principal alias
 Certificate
 Base-64 encoded service certificate
     */
-    Usercertificate *[]string `json:"usercertificate,omitempty"`
+    Usercertificate *[]interface{} `json:"usercertificate,omitempty"`
   
     /*
 Subject
@@ -91592,16 +96742,16 @@ Not After
     ValidNotAfter string `json:"valid_not_after,omitempty"`
   
     /*
-Fingerprint (MD5)
-
-    */
-    Md5Fingerprint string `json:"md5_fingerprint,omitempty"`
-  
-    /*
 Fingerprint (SHA1)
 
     */
     Sha1Fingerprint string `json:"sha1_fingerprint,omitempty"`
+  
+    /*
+Fingerprint (SHA256)
+
+    */
+    Sha256Fingerprint string `json:"sha256_fingerprint,omitempty"`
   
     /*
 Revocation reason
@@ -91737,9 +96887,9 @@ type jsonService struct {
   
     ValidNotAfter interface{} `json:"valid_not_after"`
   
-    Md5Fingerprint interface{} `json:"md5_fingerprint"`
-  
     Sha1Fingerprint interface{} `json:"sha1_fingerprint"`
+  
+    Sha256Fingerprint interface{} `json:"sha256_fingerprint"`
   
     RevocationReason interface{} `json:"revocation_reason"`
   
@@ -91852,14 +97002,14 @@ func (out *Service) UnmarshalJSON(data []byte) error {
   
   if in.Usercertificate != nil {
     raw := in.Usercertificate
-    plainV, plainOk := raw.(string)
+    plainV, plainOk := raw.(interface{})
     sliceWrapperV, sliceWrapperOk := raw.([]interface{})
-    var sliceV []string
+    var sliceV []interface{}
     sliceOk := sliceWrapperOk
     if sliceWrapperOk {
       for _, rawItem := range sliceWrapperV {
         
-        itemV, itemOk := rawItem.(string)
+        itemV, itemOk := rawItem.(interface{})
         
         if !itemOk {
           sliceOk = false
@@ -91872,7 +97022,7 @@ func (out *Service) UnmarshalJSON(data []byte) error {
     }
     
       if plainOk {
-        out.Usercertificate = &[]string{plainV}
+        out.Usercertificate = &[]interface{}{plainV}
       } else if sliceOk {
         
         out.Usercertificate = &sliceV
@@ -92099,42 +97249,6 @@ func (out *Service) UnmarshalJSON(data []byte) error {
   }
   
   if true {
-    raw := in.Md5Fingerprint
-    plainV, plainOk := raw.(string)
-    sliceWrapperV, sliceWrapperOk := raw.([]interface{})
-    var sliceV []string
-    sliceOk := sliceWrapperOk
-    if sliceWrapperOk {
-      for _, rawItem := range sliceWrapperV {
-        
-        itemV, itemOk := rawItem.(string)
-        
-        if !itemOk {
-          sliceOk = false
-          break
-        }
-        
-        sliceV = append(sliceV, itemV)
-        
-      }
-    }
-    
-      if plainOk {
-        out.Md5Fingerprint = plainV
-      } else if sliceOk {
-        
-          if len(sliceV) != 1 {
-            return fmt.Errorf("unexpected value for field Md5Fingerprint: %v; expected exactly one element", raw)
-          }
-          out.Md5Fingerprint = sliceV[0]
-        
-      } else {
-        return fmt.Errorf("unexpected value for field Md5Fingerprint: %v (%v)", raw, reflect.TypeOf(raw))
-      }
-    
-  }
-  
-  if true {
     raw := in.Sha1Fingerprint
     plainV, plainOk := raw.(string)
     sliceWrapperV, sliceWrapperOk := raw.([]interface{})
@@ -92166,6 +97280,42 @@ func (out *Service) UnmarshalJSON(data []byte) error {
         
       } else {
         return fmt.Errorf("unexpected value for field Sha1Fingerprint: %v (%v)", raw, reflect.TypeOf(raw))
+      }
+    
+  }
+  
+  if true {
+    raw := in.Sha256Fingerprint
+    plainV, plainOk := raw.(string)
+    sliceWrapperV, sliceWrapperOk := raw.([]interface{})
+    var sliceV []string
+    sliceOk := sliceWrapperOk
+    if sliceWrapperOk {
+      for _, rawItem := range sliceWrapperV {
+        
+        itemV, itemOk := rawItem.(string)
+        
+        if !itemOk {
+          sliceOk = false
+          break
+        }
+        
+        sliceV = append(sliceV, itemV)
+        
+      }
+    }
+    
+      if plainOk {
+        out.Sha256Fingerprint = plainV
+      } else if sliceOk {
+        
+          if len(sliceV) != 1 {
+            return fmt.Errorf("unexpected value for field Sha256Fingerprint: %v; expected exactly one element", raw)
+          }
+          out.Sha256Fingerprint = sliceV[0]
+        
+      } else {
+        return fmt.Errorf("unexpected value for field Sha256Fingerprint: %v (%v)", raw, reflect.TypeOf(raw))
       }
     
   }
@@ -93323,6 +98473,12 @@ Kerberos principal expiration
     Krbprincipalexpiration *time.Time `json:"krbprincipalexpiration,omitempty"`
   
     /*
+User password expiration
+
+    */
+    Krbpasswordexpiration *time.Time `json:"krbpasswordexpiration,omitempty"`
+  
+    /*
 Email address
 
     */
@@ -93494,7 +98650,13 @@ Preferred Language
 Certificate
 Base-64 encoded user certificate
     */
-    Usercertificate *[]string `json:"usercertificate,omitempty"`
+    Usercertificate *[]interface{} `json:"usercertificate,omitempty"`
+  
+    /*
+Certificate mapping data
+Certificate mapping data
+    */
+    Ipacertmapdata *[]string `json:"ipacertmapdata,omitempty"`
   
     /*
 Password
@@ -93606,6 +98768,8 @@ type jsonStageuser struct {
   
     Krbprincipalexpiration interface{} `json:"krbprincipalexpiration"`
   
+    Krbpasswordexpiration interface{} `json:"krbpasswordexpiration"`
+  
     Mail interface{} `json:"mail"`
   
     Userpassword interface{} `json:"userpassword"`
@@ -93663,6 +98827,8 @@ type jsonStageuser struct {
     Preferredlanguage interface{} `json:"preferredlanguage"`
   
     Usercertificate interface{} `json:"usercertificate"`
+  
+    Ipacertmapdata interface{} `json:"ipacertmapdata"`
   
     HasPassword interface{} `json:"has_password"`
   
@@ -94126,6 +99292,43 @@ func (out *Stageuser) UnmarshalJSON(data []byte) error {
         
       } else {
         return fmt.Errorf("unexpected value for field Krbprincipalexpiration: %v (%v)", raw, reflect.TypeOf(raw))
+      }
+    
+  }
+  
+  if in.Krbpasswordexpiration != nil {
+    raw := in.Krbpasswordexpiration
+    plainV, plainOk := raw.(time.Time)
+    sliceWrapperV, sliceWrapperOk := raw.([]interface{})
+    var sliceV []time.Time
+    sliceOk := sliceWrapperOk
+    if sliceWrapperOk {
+      for _, rawItem := range sliceWrapperV {
+        
+        itemV, itemOk := rawItem.(time.Time)
+        
+        if !itemOk {
+          sliceOk = false
+          break
+        }
+        
+        sliceV = append(sliceV, itemV)
+        
+      }
+    }
+    
+      if plainOk {
+        out.Krbpasswordexpiration = &plainV
+      } else if sliceOk {
+        
+          if len(sliceV) == 1 {
+            out.Krbpasswordexpiration = &sliceV[0]
+          } else if len(sliceV) > 1 {
+            return fmt.Errorf("unexpected value for field Krbpasswordexpiration: %v; expected at most one element", raw)
+          }
+        
+      } else {
+        return fmt.Errorf("unexpected value for field Krbpasswordexpiration: %v (%v)", raw, reflect.TypeOf(raw))
       }
     
   }
@@ -95121,6 +100324,38 @@ func (out *Stageuser) UnmarshalJSON(data []byte) error {
   
   if in.Usercertificate != nil {
     raw := in.Usercertificate
+    plainV, plainOk := raw.(interface{})
+    sliceWrapperV, sliceWrapperOk := raw.([]interface{})
+    var sliceV []interface{}
+    sliceOk := sliceWrapperOk
+    if sliceWrapperOk {
+      for _, rawItem := range sliceWrapperV {
+        
+        itemV, itemOk := rawItem.(interface{})
+        
+        if !itemOk {
+          sliceOk = false
+          break
+        }
+        
+        sliceV = append(sliceV, itemV)
+        
+      }
+    }
+    
+      if plainOk {
+        out.Usercertificate = &[]interface{}{plainV}
+      } else if sliceOk {
+        
+        out.Usercertificate = &sliceV
+      } else {
+        return fmt.Errorf("unexpected value for field Usercertificate: %v (%v)", raw, reflect.TypeOf(raw))
+      }
+    
+  }
+  
+  if in.Ipacertmapdata != nil {
+    raw := in.Ipacertmapdata
     plainV, plainOk := raw.(string)
     sliceWrapperV, sliceWrapperOk := raw.([]interface{})
     var sliceV []string
@@ -95141,12 +100376,12 @@ func (out *Stageuser) UnmarshalJSON(data []byte) error {
     }
     
       if plainOk {
-        out.Usercertificate = &[]string{plainV}
+        out.Ipacertmapdata = &[]string{plainV}
       } else if sliceOk {
         
-        out.Usercertificate = &sliceV
+        out.Ipacertmapdata = &sliceV
       } else {
-        return fmt.Errorf("unexpected value for field Usercertificate: %v (%v)", raw, reflect.TypeOf(raw))
+        return fmt.Errorf("unexpected value for field Ipacertmapdata: %v (%v)", raw, reflect.TypeOf(raw))
       }
     
   }
@@ -99090,6 +104325,12 @@ Kerberos principal expiration
     Krbprincipalexpiration *time.Time `json:"krbprincipalexpiration,omitempty"`
   
     /*
+User password expiration
+
+    */
+    Krbpasswordexpiration *time.Time `json:"krbpasswordexpiration,omitempty"`
+  
+    /*
 Email address
 
     */
@@ -99261,7 +104502,13 @@ Preferred Language
 Certificate
 Base-64 encoded user certificate
     */
-    Usercertificate *[]string `json:"usercertificate,omitempty"`
+    Usercertificate *[]interface{} `json:"usercertificate,omitempty"`
+  
+    /*
+Certificate mapping data
+Certificate mapping data
+    */
+    Ipacertmapdata *[]string `json:"ipacertmapdata,omitempty"`
   
     /*
 Account disabled
@@ -99385,6 +104632,8 @@ type jsonUser struct {
   
     Krbprincipalexpiration interface{} `json:"krbprincipalexpiration"`
   
+    Krbpasswordexpiration interface{} `json:"krbpasswordexpiration"`
+  
     Mail interface{} `json:"mail"`
   
     Userpassword interface{} `json:"userpassword"`
@@ -99442,6 +104691,8 @@ type jsonUser struct {
     Preferredlanguage interface{} `json:"preferredlanguage"`
   
     Usercertificate interface{} `json:"usercertificate"`
+  
+    Ipacertmapdata interface{} `json:"ipacertmapdata"`
   
     Nsaccountlock interface{} `json:"nsaccountlock"`
   
@@ -99911,6 +105162,43 @@ func (out *User) UnmarshalJSON(data []byte) error {
         
       } else {
         return fmt.Errorf("unexpected value for field Krbprincipalexpiration: %v (%v)", raw, reflect.TypeOf(raw))
+      }
+    
+  }
+  
+  if in.Krbpasswordexpiration != nil {
+    raw := in.Krbpasswordexpiration
+    plainV, plainOk := raw.(time.Time)
+    sliceWrapperV, sliceWrapperOk := raw.([]interface{})
+    var sliceV []time.Time
+    sliceOk := sliceWrapperOk
+    if sliceWrapperOk {
+      for _, rawItem := range sliceWrapperV {
+        
+        itemV, itemOk := rawItem.(time.Time)
+        
+        if !itemOk {
+          sliceOk = false
+          break
+        }
+        
+        sliceV = append(sliceV, itemV)
+        
+      }
+    }
+    
+      if plainOk {
+        out.Krbpasswordexpiration = &plainV
+      } else if sliceOk {
+        
+          if len(sliceV) == 1 {
+            out.Krbpasswordexpiration = &sliceV[0]
+          } else if len(sliceV) > 1 {
+            return fmt.Errorf("unexpected value for field Krbpasswordexpiration: %v; expected at most one element", raw)
+          }
+        
+      } else {
+        return fmt.Errorf("unexpected value for field Krbpasswordexpiration: %v (%v)", raw, reflect.TypeOf(raw))
       }
     
   }
@@ -100906,6 +106194,38 @@ func (out *User) UnmarshalJSON(data []byte) error {
   
   if in.Usercertificate != nil {
     raw := in.Usercertificate
+    plainV, plainOk := raw.(interface{})
+    sliceWrapperV, sliceWrapperOk := raw.([]interface{})
+    var sliceV []interface{}
+    sliceOk := sliceWrapperOk
+    if sliceWrapperOk {
+      for _, rawItem := range sliceWrapperV {
+        
+        itemV, itemOk := rawItem.(interface{})
+        
+        if !itemOk {
+          sliceOk = false
+          break
+        }
+        
+        sliceV = append(sliceV, itemV)
+        
+      }
+    }
+    
+      if plainOk {
+        out.Usercertificate = &[]interface{}{plainV}
+      } else if sliceOk {
+        
+        out.Usercertificate = &sliceV
+      } else {
+        return fmt.Errorf("unexpected value for field Usercertificate: %v (%v)", raw, reflect.TypeOf(raw))
+      }
+    
+  }
+  
+  if in.Ipacertmapdata != nil {
+    raw := in.Ipacertmapdata
     plainV, plainOk := raw.(string)
     sliceWrapperV, sliceWrapperOk := raw.([]interface{})
     var sliceV []string
@@ -100926,12 +106246,12 @@ func (out *User) UnmarshalJSON(data []byte) error {
     }
     
       if plainOk {
-        out.Usercertificate = &[]string{plainV}
+        out.Ipacertmapdata = &[]string{plainV}
       } else if sliceOk {
         
-        out.Usercertificate = &sliceV
+        out.Ipacertmapdata = &sliceV
       } else {
-        return fmt.Errorf("unexpected value for field Usercertificate: %v (%v)", raw, reflect.TypeOf(raw))
+        return fmt.Errorf("unexpected value for field Ipacertmapdata: %v (%v)", raw, reflect.TypeOf(raw))
       }
     
   }
