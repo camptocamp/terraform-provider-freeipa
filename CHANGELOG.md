@@ -4,6 +4,7 @@ IMPROVEMENTS:
 
 * Use Go 1.20
 * Replace archived FreeIPA Go library with new maintained fork
+* Migrate to Terraform plugin framework
 
 ## 0.7.0 (October 29, 2020)
 
