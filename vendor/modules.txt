@@ -1,4 +1,4 @@
-# github.com/ccin2p3/go-freeipa v1.1.1 => github.com/camptocamp/go-freeipa v1.1.2-0.20230622155458-762b981bef48
+# github.com/ccin2p3/go-freeipa v1.1.1 => github.com/camptocamp/go-freeipa v1.1.2-0.20230623080834-d87bf972a3d5
 ## explicit; go 1.15
 github.com/ccin2p3/go-freeipa/freeipa
 # github.com/fatih/color v1.15.0
@@ -172,6 +172,10 @@ github.com/vmihailenco/tagparser/v2/internal/parser
 ## explicit; go 1.17
 golang.org/x/crypto/md4
 golang.org/x/crypto/pbkdf2
+# golang.org/x/exp v0.0.0-20230522175609-2e198f4a06a1
+## explicit; go 1.20
+golang.org/x/exp/constraints
+golang.org/x/exp/slices
 # golang.org/x/net v0.11.0
 ## explicit; go 1.17
 golang.org/x/net/http/httpguts
@@ -283,4 +287,4 @@ google.golang.org/protobuf/types/known/anypb
 google.golang.org/protobuf/types/known/durationpb
 google.golang.org/protobuf/types/known/emptypb
 google.golang.org/protobuf/types/known/timestamppb
-# github.com/ccin2p3/go-freeipa => github.com/camptocamp/go-freeipa v1.1.2-0.20230622155458-762b981bef48
+# github.com/ccin2p3/go-freeipa => github.com/camptocamp/go-freeipa v1.1.2-0.20230623080834-d87bf972a3d5

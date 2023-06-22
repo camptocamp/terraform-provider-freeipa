@@ -2,12 +2,13 @@ module github.com/camptocamp/terraform-provider-freeipa
 
 go 1.20
 
-replace github.com/ccin2p3/go-freeipa => github.com/camptocamp/go-freeipa v1.1.2-0.20230622155458-762b981bef48
+replace github.com/ccin2p3/go-freeipa => github.com/camptocamp/go-freeipa v1.1.2-0.20230623080834-d87bf972a3d5
 
 require (
 	github.com/ccin2p3/go-freeipa v1.1.1
 	github.com/hashicorp/terraform-plugin-framework v1.3.1
 	github.com/hashicorp/terraform-plugin-log v0.9.0
+	golang.org/x/exp v0.0.0-20230522175609-2e198f4a06a1
 )
 
 require (
