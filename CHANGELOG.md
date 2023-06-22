@@ -2,6 +2,7 @@
 
 IMPROVEMENTS:
 
+* Add “managed by hosts” support to `freeipa_host` resource
 * Use Go 1.20
 * Replace archived FreeIPA Go library with new maintained fork
 * Migrate to Terraform plugin framework

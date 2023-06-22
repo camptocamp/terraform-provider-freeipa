@@ -5,7 +5,10 @@ import (
 	"errors"
 
 	"github.com/camptocamp/terraform-provider-freeipa/internal/provider"
+	"github.com/camptocamp/terraform-provider-freeipa/internal/utils"
 	"github.com/ccin2p3/go-freeipa/freeipa"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
@@ -24,6 +27,7 @@ type HostModel struct {
 	Random         types.Bool   `tfsdk:"random"`
 	UserPassword   types.String `tfsdk:"userpassword"`
 	RandomPassword types.String `tfsdk:"randompassword"`
+	ManagedByHosts types.Set    `tfsdk:"managedby_hosts"`
 	Force          types.Bool   `tfsdk:"force"`
 }
 
@@ -55,6 +59,11 @@ func (r *Host) Schema(ctx context.Context, req resource.SchemaRequest, resp *res
 				Sensitive: true,
 				Computed:  true,
 			},
+			"managedby_hosts": schema.SetAttribute{
+				ElementType: types.StringType,
+				Optional:    true,
+				Computed:    true,
+			},
 			"force": schema.BoolAttribute{
 				Optional: true,
 			},
@@ -82,7 +91,7 @@ func (r *Host) ValidateConfig(ctx context.Context, req resource.ValidateConfigRe
 }
 
 func (r *Host) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
-	var state, plan HostModel
+	var state, config, plan HostModel
 	var isCreation bool
 
 	if req.Plan.Raw.IsNull() {
@@ -95,6 +104,7 @@ func (r *Host) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, r
 		resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 	}
 
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
 
 	if resp.Diagnostics.HasError() {
@@ -123,6 +133,18 @@ func (r *Host) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, r
 		}
 	}
 
+	if config.ManagedByHosts.IsNull() {
+		var diags diag.Diagnostics
+
+		plan.ManagedByHosts, diags = types.SetValue(types.StringType, []attr.Value{plan.Fqdn})
+
+		resp.Diagnostics.Append(diags...)
+	}
+
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	resp.Diagnostics.Append(resp.Plan.Set(ctx, plan)...)
 }
 
@@ -130,6 +152,14 @@ func (r *Host) Create(ctx context.Context, req resource.CreateRequest, resp *res
 	var plan, state HostModel
 
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	var managedByHosts []string
+
+	resp.Diagnostics.Append(plan.ManagedByHosts.ElementsAs(ctx, &managedByHosts, false)...)
 
 	if resp.Diagnostics.HasError() {
 		return
@@ -162,6 +192,12 @@ func (r *Host) Create(ctx context.Context, req resource.CreateRequest, resp *res
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to create host", "Reason: "+err.Error())
 
+		return
+	}
+
+	resp.Diagnostics.Append(r.updateManagedByHosts(ctx, plan.Fqdn.ValueString(), *res.Result.ManagedbyHost, managedByHosts)...)
+
+	if resp.Diagnostics.HasError() {
 		return
 	}
 
@@ -214,7 +250,21 @@ func (r *Host) Read(ctx context.Context, req resource.ReadRequest, resp *resourc
 		return
 	}
 
+	var diags diag.Diagnostics
+
 	state.Description = types.StringPointerValue(res.Result.Description)
+
+	if managedByHosts := res.Result.ManagedbyHost; managedByHosts != nil {
+		state.ManagedByHosts, diags = types.SetValueFrom(ctx, types.StringType, *managedByHosts)
+
+		resp.Diagnostics.Append(diags...)
+	} else {
+		state.ManagedByHosts = types.SetValueMust(types.StringType, []attr.Value{})
+	}
+
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
 }
@@ -225,6 +275,15 @@ func (r *Host) Update(ctx context.Context, req resource.UpdateRequest, resp *res
 
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	var currentManagedByHosts, desiredManagedByHosts []string
+
+	resp.Diagnostics.Append(state.ManagedByHosts.ElementsAs(ctx, &currentManagedByHosts, false)...)
+	resp.Diagnostics.Append(plan.ManagedByHosts.ElementsAs(ctx, &desiredManagedByHosts, false)...)
 
 	if resp.Diagnostics.HasError() {
 		return
@@ -281,6 +340,14 @@ func (r *Host) Update(ctx context.Context, req resource.UpdateRequest, resp *res
 		tflog.Debug(ctx, "Updated host has no effective difference", map[string]any{
 			"fqdn": plan.Fqdn.ValueString(),
 		})
+	}
+
+	if !plan.ManagedByHosts.Equal(state.ManagedByHosts) {
+		resp.Diagnostics.Append(r.updateManagedByHosts(ctx, plan.Fqdn.ValueString(), currentManagedByHosts, desiredManagedByHosts)...)
+	}
+
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
 	state = plan
@@ -382,6 +449,7 @@ func (r *Host) UpgradeState(ctx context.Context) map[int64]resource.StateUpgrade
 					Random:         oldState.Random,
 					UserPassword:   oldState.UserPassword,
 					RandomPassword: oldState.RandomPassword,
+					ManagedByHosts: types.SetNull(types.StringType),
 					Force:          oldState.Force,
 				}
 
@@ -407,4 +475,76 @@ func NewHost(p *provider.Provider) resource.Resource {
 
 func init() {
 	resources = append(resources, NewHost)
+}
+
+func (r *Host) updateManagedByHosts(ctx context.Context, fqdn string, actualHosts, desiredHosts []string) (diags diag.Diagnostics) {
+	hostsToAdd, hostsToRemove := utils.SetDiff(actualHosts, desiredHosts)
+
+	if len(hostsToAdd) > 0 {
+		diags.Append(r.addManagedByHosts(ctx, fqdn, hostsToAdd)...)
+	}
+
+	if len(hostsToRemove) > 0 {
+		diags.Append(r.removeManagedByHosts(ctx, fqdn, hostsToRemove)...)
+	}
+
+	return
+}
+
+func (r *Host) addManagedByHosts(ctx context.Context, fqdn string, hosts []string) (diags diag.Diagnostics) {
+	args := &freeipa.HostAddManagedbyArgs{
+		Fqdn: fqdn,
+	}
+
+	optArgs := &freeipa.HostAddManagedbyOptionalArgs{
+		Host: &hosts,
+		All:  freeipa.Bool(true),
+	}
+
+	tflog.Trace(ctx, "Calling HostAddManagedby", map[string]any{
+		"args":     args,
+		"opt_args": optArgs,
+	})
+
+	res, err := r.provider.Client().HostAddManagedby(args, optArgs)
+
+	tflog.Trace(ctx, "Called HostAddManagedby", map[string]any{
+		"res": res,
+		"err": err,
+	})
+
+	if err != nil {
+		diags.AddError("Failed to add host managed by hosts", "Reason: "+err.Error())
+	}
+
+	return
+}
+
+func (r *Host) removeManagedByHosts(ctx context.Context, fqdn string, hosts []string) (diags diag.Diagnostics) {
+	args := &freeipa.HostRemoveManagedbyArgs{
+		Fqdn: fqdn,
+	}
+
+	optArgs := &freeipa.HostRemoveManagedbyOptionalArgs{
+		Host: &hosts,
+		All:  freeipa.Bool(true),
+	}
+
+	tflog.Trace(ctx, "Calling HostRemoveManagedby", map[string]any{
+		"args":     args,
+		"opt_args": optArgs,
+	})
+
+	res, err := r.provider.Client().HostRemoveManagedby(args, optArgs)
+
+	tflog.Trace(ctx, "Called HostRemoveManagedby", map[string]any{
+		"res": res,
+		"err": err,
+	})
+
+	if err != nil {
+		diags.AddError("Failed to remove host managed by hosts", "Reason: "+err.Error())
+	}
+
+	return
 }
