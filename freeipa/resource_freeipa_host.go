@@ -6,7 +6,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 
-	ipa "github.com/tehwalris/go-freeipa/freeipa"
+	ipa "github.com/ccin2p3/go-freeipa/freeipa"
 )
 
 func resourceFreeIPAHost() *schema.Resource {

@@ -5,7 +5,7 @@ import (
 	"log"
 	"net/http"
 
-	ipa "github.com/tehwalris/go-freeipa/freeipa"
+	ipa "github.com/ccin2p3/go-freeipa/freeipa"
 )
 
 // Config is the configuration parameters for the FreeIPA API
