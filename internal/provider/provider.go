@@ -119,6 +119,7 @@ func (p *Provider) Configure(ctx context.Context, req provider.ConfigureRequest,
 	p.client, err = freeipa.Connect(
 		host,
 		&http.Transport{
+			Proxy: http.ProxyFromEnvironment,
 			TLSClientConfig: &tls.Config{
 				InsecureSkipVerify: insecureSkipVerify,
 			},

@@ -1,3 +1,9 @@
+## 0.9.0 (Unreleased)
+
+IMPROVEMENTS:
+
+* Honour `HTTP_PROXY`, `HTTPS_PROXY` and `NO_PROXY` environment variables
+
 ## 0.8.1 (May 21, 2024)
 
 BUG FIXES:
