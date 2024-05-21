@@ -45,3 +45,9 @@ func Int(v int) *int {
 func Bool(v bool) *bool {
 	return &v
 }
+
+// PointerTo is a generic helper to fill *string, *int, *bool, *[]string, etc...
+// fields in request options.
+func PointerTo[T any](v T) *T {
+	return &v
+}

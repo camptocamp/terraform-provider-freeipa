@@ -1,3 +1,9 @@
+## 0.8.1 (Unreleased)
+
+BUG FIXES:
+
+* Fix provider login for newer FreeIPA versions requiring the `Referer` HTTP request header
+
 ## 0.8.0 (June 23, 2023)
 
 IMPROVEMENTS:
