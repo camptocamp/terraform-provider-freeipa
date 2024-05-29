@@ -44,7 +44,6 @@ provider freeipa {
   host = "ipa.example.test"   # or set $FREEIPA_HOST
   username = "admin"          # or set $FREEIPA_USERNAME
   password = "P@S5sw0rd"      # or set $FREEIPA_PASSWORD
-  insecure = true
 }
 
 resource freeipa_host "foo" {
