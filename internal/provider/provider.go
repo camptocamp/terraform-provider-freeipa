@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/ccin2p3/go-freeipa/freeipa"
+	"github.com/camptocamp/go-freeipa/freeipa"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
