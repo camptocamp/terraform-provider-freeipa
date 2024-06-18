@@ -4,9 +4,9 @@ import (
 	"context"
 	"errors"
 
+	"github.com/camptocamp/go-freeipa/freeipa"
 	"github.com/camptocamp/terraform-provider-freeipa/internal/provider"
 	"github.com/camptocamp/terraform-provider-freeipa/internal/utils"
-	"github.com/ccin2p3/go-freeipa/freeipa"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
