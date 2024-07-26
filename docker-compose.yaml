@@ -1,0 +1,60 @@
+---
+version: "3.9"
+
+networks:
+  freeipa_net:
+    driver: bridge
+
+services:
+  freeipa:
+    image: docker.io/freeipa/freeipa-server:rocky-9
+    container_name: freeipa-server
+    hostname: ipa.example.test
+    environment:
+      IPA_SERVER_HOSTNAME: ipa.example.test
+      IPA_SERVER_IP: 10.89.0.5
+    read_only: false
+    command:
+      - ipa-server-install
+      - -U
+      - --realm=EXAMPLE.TEST
+      - --domain=example.test
+      - --ds-password=SecretPassword123
+      - --admin-password=SecretPassword123
+      - --setup-dns
+      - --no-ntp
+      - --no-dnssec-validation
+      - --no-forwarders
+      - --skip-mem-check
+    networks:
+      freeipa_net:
+        ipv4_address: 10.89.0.5
+    ports:
+      - "53:53/udp" # DNS
+      - "80:80" # HTTP
+      - "443:443" # HTTPS
+      - "389:389" # LDAP
+      - "636:636" # LDAPS
+      - "88:88" # Kerberos
+      - "464:464" # Kerberos password change
+      - "123:123/udp" # NTP
+    cgroup: "host"
+    volumes:
+      - "/sys/fs/cgroup:/sys/fs/cgroup:rw"
+      - "ipa-data:/data"
+    cap_add:
+      - SYS_TIME
+      - NET_ADMIN
+    restart: "no"
+    tmpfs:
+      - /run
+      - /var/cache
+      - /tmp
+    sysctls:
+      - "net.ipv6.conf.all.disable_ipv6=0"
+    shm_size: "1g" # Increase shared memory
+    extra_hosts:
+      - "ipa.example.test:10.89.0.5" # Ensure hostname resolves correctly
+
+volumes:
+  ipa-data:

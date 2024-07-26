@@ -32,3 +32,6 @@ website/vendor
 
 # Binary
 terraform-provider-freeipa
+
+# Docker volume
+ipa-data/
