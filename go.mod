@@ -5,7 +5,7 @@ go 1.22
 toolchain go1.22.3
 
 require (
-	github.com/camptocamp/go-freeipa v0.0.0-20240530094322-d8e822d33d52
+	github.com/camptocamp/go-freeipa v1.2.1-0.20240827145907-3adad2c6a379
 	github.com/hashicorp/terraform-plugin-docs v0.19.4
 	github.com/hashicorp/terraform-plugin-framework v1.8.0
 	github.com/hashicorp/terraform-plugin-go v0.23.0
