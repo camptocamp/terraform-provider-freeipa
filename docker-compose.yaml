@@ -1,0 +1,53 @@
+---
+version: "3.9"
+
+services:
+  freeipa:
+    image: quay.io/freeipa/freeipa-server:rocky-9-4.11.0
+    container_name: freeipa-server
+    hostname: ipa.example.test
+    tty: true
+    stdin_open: true
+    environment:
+      IPA_SERVER_HOSTNAME: ipa.example.test
+      IPA_SERVER_IP: 127.0.0.1
+    read_only: true
+    command:
+      - -U
+      - --realm=EXAMPLE.TEST
+      - --domain=example.test
+      - --netbios-name=EXAMPLE
+      - --ds-password=SecretPassword123
+      - --admin-password=SecretPassword123
+      - --setup-dns
+      - --no-ntp
+      - --no-dnssec-validation
+      - --no-forwarders
+      - --skip-mem-check
+    ports:
+      - "80:80" # HTTP
+      - "443:443" # HTTPS
+      - "389:389" # LDAP
+      - "636:636" # LDAPS
+      - "88:88" # Kerberos
+      - "88:88/udp" # Kerberos UDP
+      - "464:464" # Kerberos password change
+      - "464:464/udp" # Kerberos password change UDP
+    cgroup: "host"
+    volumes:
+      - "/sys/fs/cgroup:/sys/fs/cgroup:ro"
+      - "ipa-data:/data"
+    cap_add:
+      - SYS_TIME
+      - NET_ADMIN
+    restart: "unless-stopped"
+    tmpfs:
+      - /run
+      - /var/cache
+      - /tmp
+    sysctls:
+      - "net.ipv6.conf.all.disable_ipv6=0"
+    shm_size: "1g" # Increase shared memory
+
+volumes:
+  ipa-data:
