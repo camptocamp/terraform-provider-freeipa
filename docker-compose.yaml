@@ -3,7 +3,7 @@ version: "3.9"
 
 services:
   freeipa:
-    image: quay.io/freeipa/freeipa-server:rocky-9-4.11.0
+    image: quay.io/freeipa/freeipa-server:rocky-9
     container_name: freeipa-server
     hostname: ipa.example.test
     tty: true

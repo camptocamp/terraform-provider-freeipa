@@ -1,0 +1,47 @@
+name: Unit & Acceptance Tests
+
+on:
+  push:
+    branches:
+      - main
+      - test-ci
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install podman
+        run: |
+          sudo apt-get -y update
+          sudo apt-get -y install podman
+
+      - name: Setup kernel unpriviledged port start
+        run: sudo sysctl net.ipv4.ip_unprivileged_port_start=80
+
+      - name: Configure hosts redirection
+        run: |
+          echo '127.0.0.1 ipa.example.test' | sudo tee -a /etc/hosts
+          cat /etc/hosts
+
+      - name: Start podman daemon
+        run: |
+          systemctl --user start podman.socket
+          ls $XDG_RUNTIME_DIR/podman/podman.sock
+          export DOCKER_HOST=unix://$XDG_RUNTIME_DIR/podman/podman.sock
+
+      - name: Setup test environment
+        run: make prepare-dev-env
+
+      - name: Run unit tests
+        run: make test
+
+      - name: Run acceptance tests
+        run: make testacc
+
+      - name: Destroy test environment
+        run: make stop-dev-env

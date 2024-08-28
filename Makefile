@@ -29,7 +29,7 @@ prepare-dev-env:
 			exit 1; \
 		fi; \
 		echo "Waiting for the freeipa container environment to come up..."; \
-		until curl -s -k https://ipa.example.test/ipa/ui/ | grep -q "Identity Management"; do sleep 1; done; \
+		until curl -s -k https://ipa.example.test/ipa/ui/ | grep -q "Identity Management"; do sleep 2; podman logs --tail 10 freeipa-server; done; \
 		echo "FreeIPA container environment started."; \
 	else \
 		echo "FreeIPA container environment already running."; \
