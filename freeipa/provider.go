@@ -29,7 +29,7 @@ func Provider() *schema.Provider {
 			"insecure": {
 				Type:        schema.TypeBool,
 				Optional:    true,
-				Default:     false,
+				DefaultFunc: schema.EnvDefaultFunc("FREEIPA_INSECURE", false),
 				Description: descriptions["insecure"],
 			},
 		},

@@ -2,7 +2,6 @@ package freeipa
 
 import (
 	"fmt"
-	"os"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -44,57 +43,27 @@ func TestAccFreeIPASudocmdgroup(t *testing.T) {
 }
 
 func testAccFreeIPASudocmdgroupResource_basic(dataset map[string]string) string {
-	provider_host := os.Getenv("FREEIPA_HOST")
-	provider_user := os.Getenv("FREEIPA_USERNAME")
-	provider_pass := os.Getenv("FREEIPA_PASSWORD")
 	return fmt.Sprintf(`
-	provider "freeipa" {
-		host     = "%s"
-		username = "%s"
-		password = "%s"
-		insecure = true
-	  }
-	  
 	resource "freeipa_sudo_cmdgroup" "cmdgroup" {
 		name       = "%s"
 	}
-	`, provider_host, provider_user, provider_pass, dataset["name"])
+	`, dataset["name"])
 }
 
 func testAccFreeIPASudocmdgroupResource_full(dataset map[string]string) string {
-	provider_host := os.Getenv("FREEIPA_HOST")
-	provider_user := os.Getenv("FREEIPA_USERNAME")
-	provider_pass := os.Getenv("FREEIPA_PASSWORD")
 	return fmt.Sprintf(`
-	provider "freeipa" {
-		host     = "%s"
-		username = "%s"
-		password = "%s"
-		insecure = true
-	  }
-	  
 	resource "freeipa_sudo_cmdgroup" "cmdgroup" {
 		name        = "%s"
 		description  = "%s"
 	}
-	`, provider_host, provider_user, provider_pass, dataset["name"], dataset["description"])
+	`, dataset["name"], dataset["description"])
 }
 
 func testAccFreeIPASudocmdgroupResource_update(dataset map[string]string) string {
-	provider_host := os.Getenv("FREEIPA_HOST")
-	provider_user := os.Getenv("FREEIPA_USERNAME")
-	provider_pass := os.Getenv("FREEIPA_PASSWORD")
 	return fmt.Sprintf(`
-	provider "freeipa" {
-		host     = "%s"
-		username = "%s"
-		password = "%s"
-		insecure = true
-	  }
-	  
 	resource "freeipa_sudo_cmdgroup" "cmdgroup" {
 		name        = "%s"
 		description  = "%s"
 	}
-	`, provider_host, provider_user, provider_pass, dataset["name"], dataset["description2"])
+	`, dataset["name"], dataset["description2"])
 }

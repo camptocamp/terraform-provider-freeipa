@@ -2,7 +2,6 @@ package freeipa
 
 import (
 	"fmt"
-	"os"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -42,35 +41,15 @@ func TestAccFreeIPADNSHBAC(t *testing.T) {
 }
 
 func testAccFreeIPADNSHBACResource_basic(dataset map[string]string) string {
-	provider_host := os.Getenv("FREEIPA_HOST")
-	provider_user := os.Getenv("FREEIPA_USERNAME")
-	provider_pass := os.Getenv("FREEIPA_PASSWORD")
 	return fmt.Sprintf(`
-	provider "freeipa" {
-		host     = "%s"
-		username = "%s"
-		password = "%s"
-		insecure = true
-	  }
-	  
 	resource "freeipa_hbac_policy" "hbac_policy" {
 		name       = "%s"
 	}
-	`, provider_host, provider_user, provider_pass, dataset["name"])
+	`, dataset["name"])
 }
 
 func testAccFreeIPADNSHBACResource_full(dataset map[string]string) string {
-	provider_host := os.Getenv("FREEIPA_HOST")
-	provider_user := os.Getenv("FREEIPA_USERNAME")
-	provider_pass := os.Getenv("FREEIPA_PASSWORD")
 	return fmt.Sprintf(`
-	provider "freeipa" {
-		host     = "%s"
-		username = "%s"
-		password = "%s"
-		insecure = true
-	  }
-	  
 	resource "freeipa_hbac_policy" "hbac_policy" {
 		name        = "%s"
 		description  = "%s"
@@ -78,5 +57,5 @@ func testAccFreeIPADNSHBACResource_full(dataset map[string]string) string {
 		usercategory = "%s"
 		hostcategory = "%s"
 	}
-	`, provider_host, provider_user, provider_pass, dataset["name"], dataset["description"], dataset["enabled"], dataset["usercategory"], dataset["hostcategory"])
+	`, dataset["name"], dataset["description"], dataset["enabled"], dataset["usercategory"], dataset["hostcategory"])
 }

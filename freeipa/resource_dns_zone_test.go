@@ -91,35 +91,16 @@ func TestAccFreeIPADNSDNSZone(t *testing.T) {
 }
 
 func testAccFreeIPADNSDNSZoneResource_basic(dataset map[string]string) string {
-	provider_host := os.Getenv("FREEIPA_HOST")
-	provider_user := os.Getenv("FREEIPA_USERNAME")
-	provider_pass := os.Getenv("FREEIPA_PASSWORD")
 	return fmt.Sprintf(`
-	provider "freeipa" {
-		host     = "%s"
-		username = "%s"
-		password = "%s"
-		insecure = true
-	  }
-	  
 	resource "freeipa_dns_zone" "dnszone" {
 		zone_name = "%s"
 	}
-	`, provider_host, provider_user, provider_pass, dataset["zone_name"])
+	`, dataset["zone_name"])
 }
 
 func testAccFreeIPADNSDNSZoneResource_full(dataset map[string]string) string {
 	provider_host := os.Getenv("FREEIPA_HOST")
-	provider_user := os.Getenv("FREEIPA_USERNAME")
-	provider_pass := os.Getenv("FREEIPA_PASSWORD")
 	return fmt.Sprintf(`
-	provider "freeipa" {
-		host     = "%s"
-		username = "%s"
-		password = "%s"
-		insecure = true
-	  }
-	  
 	resource "freeipa_dns_zone" "dnszone" {
 		zone_name                   = "%s"
 		admin_email_address         = "%s"
@@ -142,43 +123,24 @@ func testAccFreeIPADNSDNSZoneResource_full(dataset map[string]string) string {
 		ttl                         = %s
 		zone_forwarders             = ["%s"]
 	}
-	`, provider_host, provider_user, provider_pass, dataset["zone_name"], dataset["admin_email_address"], dataset["allow_inline_dnssec_signing"], dataset["allow_prt_sync"],
+	`, dataset["zone_name"], dataset["admin_email_address"], dataset["allow_inline_dnssec_signing"], dataset["allow_prt_sync"],
 		dataset["allow_query"], dataset["allow_transfer"], provider_host, dataset["bind_update_policy"], dataset["default_ttl"], dataset["disable_zone"],
 		dataset["dynamic_updates"], dataset["is_reverse_zone"], dataset["skip_nameserver_check"], dataset["skip_overlap_check"], dataset["soa_expire"],
 		dataset["soa_minimum"], dataset["soa_refresh"], dataset["soa_retry"], dataset["ttl"], dataset["zone_forwarders"])
 }
 
 func testAccFreeIPADNSDNSZoneReverseResource_basic(dataset map[string]string) string {
-	provider_host := os.Getenv("FREEIPA_HOST")
-	provider_user := os.Getenv("FREEIPA_USERNAME")
-	provider_pass := os.Getenv("FREEIPA_PASSWORD")
 	return fmt.Sprintf(`
-	provider "freeipa" {
-		host     = "%s"
-		username = "%s"
-		password = "%s"
-		insecure = true
-	  }
-	  
 	resource "freeipa_dns_zone" "dnszonereverse" {
 		zone_name       = "%s"
 		is_reverse_zone = %s
 	}
-	`, provider_host, provider_user, provider_pass, dataset["zone_name"], dataset["is_reverse_zone"])
+	`, dataset["zone_name"], dataset["is_reverse_zone"])
 }
 
 func testAccFreeIPADNSDNSZoneReverseResource_full(dataset map[string]string) string {
 	provider_host := os.Getenv("FREEIPA_HOST")
-	provider_user := os.Getenv("FREEIPA_USERNAME")
-	provider_pass := os.Getenv("FREEIPA_PASSWORD")
 	return fmt.Sprintf(`
-	provider "freeipa" {
-		host     = "%s"
-		username = "%s"
-		password = "%s"
-		insecure = true
-	  }
-	  
 	resource "freeipa_dns_zone" "dnszonereverse" {
 		zone_name                   = "%s"
 		admin_email_address         = "%s"
@@ -201,7 +163,7 @@ func testAccFreeIPADNSDNSZoneReverseResource_full(dataset map[string]string) str
 		ttl                         = %s
 		zone_forwarders             = ["%s"]
 	}
-	`, provider_host, provider_user, provider_pass, dataset["zone_name"], dataset["admin_email_address"], dataset["allow_inline_dnssec_signing"], dataset["allow_prt_sync"],
+	`, dataset["zone_name"], dataset["admin_email_address"], dataset["allow_inline_dnssec_signing"], dataset["allow_prt_sync"],
 		dataset["allow_query"], dataset["allow_transfer"], provider_host, dataset["bind_update_policy"], dataset["default_ttl"], dataset["disable_zone"],
 		dataset["dynamic_updates"], dataset["is_reverse_zone"], dataset["skip_nameserver_check"], dataset["skip_overlap_check"], dataset["soa_expire"],
 		dataset["soa_minimum"], dataset["soa_refresh"], dataset["soa_retry"], dataset["ttl"], dataset["zone_forwarders"])

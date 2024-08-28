@@ -2,7 +2,6 @@ package freeipa
 
 import (
 	"fmt"
-	"os"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -29,17 +28,7 @@ func TestAccFreeIPASudoRuleOption(t *testing.T) {
 }
 
 func testAccFreeIPASudoRuleOptionResource_basic(dataset map[string]string) string {
-	provider_host := os.Getenv("FREEIPA_HOST")
-	provider_user := os.Getenv("FREEIPA_USERNAME")
-	provider_pass := os.Getenv("FREEIPA_PASSWORD")
 	return fmt.Sprintf(`
-	provider "freeipa" {
-		host     = "%s"
-		username = "%s"
-		password = "%s"
-		insecure = true
-	  }
-
 	resource "freeipa_sudo_rule" "test_rule" {
 		name       = "%s"
 	}
@@ -48,5 +37,5 @@ func testAccFreeIPASudoRuleOptionResource_basic(dataset map[string]string) strin
 		name = freeipa_sudo_rule.test_rule.name
 		option = "%s"
 	 }
-	`, provider_host, provider_user, provider_pass, dataset["name"], dataset["option"])
+	`, dataset["name"], dataset["option"])
 }

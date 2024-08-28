@@ -2,7 +2,6 @@ package freeipa
 
 import (
 	"fmt"
-	"os"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -39,19 +38,7 @@ func TestAccFreeIPASudoRuleAllowCommand(t *testing.T) {
 }
 
 func testAccFreeIPASudoRuleAllowCommandResource_basic(dataset map[string]string) string {
-	provider_host := os.Getenv("FREEIPA_HOST")
-	provider_user := os.Getenv("FREEIPA_USERNAME")
-	provider_pass := os.Getenv("FREEIPA_PASSWORD")
 	return fmt.Sprintf(`
-	provider "freeipa" {
-		host     = "%s"
-		username = "%s"
-		password = "%s"
-		insecure = true
-	  }
-	
-	
-	  
 	resource "freeipa_sudo_cmd" "cmd1" {
 		name        = "%s"
 	}
@@ -62,22 +49,11 @@ func testAccFreeIPASudoRuleAllowCommandResource_basic(dataset map[string]string)
 		name       = freeipa_sudo_rule.test_rule.name
 		sudocmd    = freeipa_sudo_cmd.cmd1.name
 	}
-	`, provider_host, provider_user, provider_pass, dataset["allowcmd1"], dataset["name"])
+	`, dataset["allowcmd1"], dataset["name"])
 }
 
 func testAccFreeIPASudoRuleAllowCommandResource_full(dataset map[string]string) string {
-	provider_host := os.Getenv("FREEIPA_HOST")
-	provider_user := os.Getenv("FREEIPA_USERNAME")
-	provider_pass := os.Getenv("FREEIPA_PASSWORD")
-	return fmt.Sprintf(`
-	provider "freeipa" {
-		host     = "%s"
-		username = "%s"
-		password = "%s"
-		insecure = true
-	  }
-	  
-		    
+	return fmt.Sprintf(`    
 	resource "freeipa_sudo_cmd" "cmd1" {
 		name        = "%s"
 	}
@@ -102,5 +78,5 @@ func testAccFreeIPASudoRuleAllowCommandResource_full(dataset map[string]string) 
 		name       = freeipa_sudo_rule.test_rule.name
 		sudocmd_group = freeipa_sudo_cmdgroup.cmdgroup.name
 	}
-	`, provider_host, provider_user, provider_pass, dataset["allowcmd1"], dataset["allowcmd2"], dataset["allowcmdgrp"], dataset["name"])
+	`, dataset["allowcmd1"], dataset["allowcmd2"], dataset["allowcmdgrp"], dataset["name"])
 }

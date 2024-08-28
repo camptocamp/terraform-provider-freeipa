@@ -254,7 +254,7 @@ func resourceFreeIPADNSDNSZoneCreate(ctx context.Context, d *schema.ResourceData
 		return diag.Errorf("Error creating freeipa dns zone: %s", err)
 	}
 
-	d.SetId(res.Result.Idnsname.(string))
+	d.SetId(res.Result.Idnsname.([]interface{})[0].(map[string]interface{})["__dns_name__"].(string))
 
 	if _v, ok := d.GetOkExists("disable_zone"); ok {
 		v := _v.(bool)

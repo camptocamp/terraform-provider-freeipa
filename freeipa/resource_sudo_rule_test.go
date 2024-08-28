@@ -2,7 +2,6 @@ package freeipa
 
 import (
 	"fmt"
-	"os"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -43,35 +42,15 @@ func TestAccFreeIPASudoRule(t *testing.T) {
 }
 
 func testAccFreeIPASudoRuleResource_basic(dataset map[string]string) string {
-	provider_host := os.Getenv("FREEIPA_HOST")
-	provider_user := os.Getenv("FREEIPA_USERNAME")
-	provider_pass := os.Getenv("FREEIPA_PASSWORD")
 	return fmt.Sprintf(`
-	provider "freeipa" {
-		host     = "%s"
-		username = "%s"
-		password = "%s"
-		insecure = true
-	  }
-	  
 	resource "freeipa_sudo_rule" "test_rule" {
 		name       = "%s"
 	}
-	`, provider_host, provider_user, provider_pass, dataset["name"])
+	`, dataset["name"])
 }
 
 func testAccFreeIPASudoRuleResource_full(dataset map[string]string) string {
-	provider_host := os.Getenv("FREEIPA_HOST")
-	provider_user := os.Getenv("FREEIPA_USERNAME")
-	provider_pass := os.Getenv("FREEIPA_PASSWORD")
 	return fmt.Sprintf(`
-	provider "freeipa" {
-		host     = "%s"
-		username = "%s"
-		password = "%s"
-		insecure = true
-	  }
-	  
 	resource "freeipa_sudo_rule" "test_rule" {
 		name        = "%s"
 		description  = "%s"
@@ -83,6 +62,6 @@ func testAccFreeIPASudoRuleResource_full(dataset map[string]string) string {
 		runasgroupcategory = "%s"
 		order = %s
 	}
-	`, provider_host, provider_user, provider_pass, dataset["name"], dataset["description"], dataset["enabled"], dataset["usercategory"], dataset["hostcategory"],
+	`, dataset["name"], dataset["description"], dataset["enabled"], dataset["usercategory"], dataset["hostcategory"],
 		dataset["commandcategory"], dataset["runasusercategory"], dataset["runasgroupcategory"], dataset["order"])
 }

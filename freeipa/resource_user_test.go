@@ -2,7 +2,6 @@ package freeipa
 
 import (
 	"fmt"
-	"os"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -26,7 +25,7 @@ func TestAccFreeIPADNSUser(t *testing.T) {
 		"home_directory":           "/home/testuser",
 		"initials":                 "TU",
 		"job_title":                "Developer",
-		"krb_principal_name":       "tuser@IPATEST.LAN",
+		"krb_principal_name":       "tuser@EXAMPLE.TEST",
 		"login_shell":              "/bin/bash",
 		"manager":                  "Dev Manager",
 		"mobile_numbers":           "0123456789",
@@ -96,37 +95,17 @@ func TestAccFreeIPADNSUser(t *testing.T) {
 }
 
 func testAccFreeIPADNSUserResource_basic(dataset map[string]string) string {
-	provider_host := os.Getenv("FREEIPA_HOST")
-	provider_user := os.Getenv("FREEIPA_USERNAME")
-	provider_pass := os.Getenv("FREEIPA_PASSWORD")
 	return fmt.Sprintf(`
-	provider "freeipa" {
-		host     = "%s"
-		username = "%s"
-		password = "%s"
-		insecure = true
-	  }
-	  
 	resource "freeipa_user" "user" {
 		name       = "%s"
 		first_name = "%s"
 		last_name  = "%s"
 	}
-	`, provider_host, provider_user, provider_pass, dataset["login"], dataset["firstname"], dataset["lastname"])
+	`, dataset["login"], dataset["firstname"], dataset["lastname"])
 }
 
 func testAccFreeIPADNSUserResource_full(dataset map[string]string) string {
-	provider_host := os.Getenv("FREEIPA_HOST")
-	provider_user := os.Getenv("FREEIPA_USERNAME")
-	provider_pass := os.Getenv("FREEIPA_PASSWORD")
 	return fmt.Sprintf(`
-	provider "freeipa" {
-		host     = "%s"
-		username = "%s"
-		password = "%s"
-		insecure = true
-	  }
-	  
 	resource "freeipa_user" "user" {
 		name        = "%s"
 		first_name  = "%s"
@@ -162,7 +141,7 @@ func testAccFreeIPADNSUserResource_full(dataset map[string]string) string {
 		krb_password_expiration = "%s"
 		userclass = ["%s"]
 	}
-	`, provider_host, provider_user, provider_pass, dataset["login"], dataset["firstname"], dataset["lastname"], dataset["account_disabled"],
+	`, dataset["login"], dataset["firstname"], dataset["lastname"], dataset["account_disabled"],
 		dataset["car_license"], dataset["city"], dataset["display_name"], dataset["email_address"], dataset["employee_number"], dataset["employee_type"],
 		dataset["full_name"], dataset["gecos"], dataset["gid_number"], dataset["home_directory"], dataset["initials"], dataset["job_title"],
 		dataset["krb_principal_name"], dataset["login_shell"], dataset["manager"], dataset["mobile_numbers"], dataset["organisation_unit"], dataset["postal_code"],

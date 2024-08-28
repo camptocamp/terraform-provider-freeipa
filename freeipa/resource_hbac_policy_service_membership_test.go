@@ -2,7 +2,6 @@ package freeipa
 
 import (
 	"fmt"
-	"os"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -43,17 +42,7 @@ func TestAccFreeIPADNSHBACServiceMembership(t *testing.T) {
 }
 
 func testAccFreeIPADNSHBACServiceMembershipResource_service(dataset map[string]string) string {
-	provider_host := os.Getenv("FREEIPA_HOST")
-	provider_user := os.Getenv("FREEIPA_USERNAME")
-	provider_pass := os.Getenv("FREEIPA_PASSWORD")
 	return fmt.Sprintf(`
-	provider "freeipa" {
-		host     = "%s"
-		username = "%s"
-		password = "%s"
-		insecure = true
-	  }
-	  
 	resource "freeipa_hbac_policy" "hbac_policy" {
 		name       = "%s"
 	}
@@ -62,21 +51,11 @@ func testAccFreeIPADNSHBACServiceMembershipResource_service(dataset map[string]s
 		name = freeipa_hbac_policy.hbac_policy.name
 		service = "%s"
 	}
-	`, provider_host, provider_user, provider_pass, dataset["name"], dataset["service"])
+	`, dataset["name"], dataset["service"])
 }
 
 func testAccFreeIPADNSHBACServiceMembershipResource_servicegroup(dataset map[string]string) string {
-	provider_host := os.Getenv("FREEIPA_HOST")
-	provider_user := os.Getenv("FREEIPA_USERNAME")
-	provider_pass := os.Getenv("FREEIPA_PASSWORD")
 	return fmt.Sprintf(`
-	provider "freeipa" {
-		host     = "%s"
-		username = "%s"
-		password = "%s"
-		insecure = true
-	  }
-	  
 	resource "freeipa_hbac_policy" "hbac_policy" {
 		name       = "%s"
 	}
@@ -85,5 +64,5 @@ func testAccFreeIPADNSHBACServiceMembershipResource_servicegroup(dataset map[str
 		name = freeipa_hbac_policy.hbac_policy.name
 		servicegroup = "%s"
 	}
-	`, provider_host, provider_user, provider_pass, dataset["name"], dataset["servicegroup"])
+	`, dataset["name"], dataset["servicegroup"])
 }
